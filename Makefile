@@ -1,2 +1,6 @@
 che: che.c
-	gcc -o che che.c -Wall -Werror
+	gcc -g -o che che.c -Wall -Werror
+
+clean:
+	rm -f che
+	rm -f *.o
