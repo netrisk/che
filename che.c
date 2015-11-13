@@ -74,6 +74,19 @@ int che_cycle(che_machine_t *m)
 	uint16_t instruction = m->mem[m->pc] << 8 | m->mem[m->pc + 1];
 	uint8_t first_nibble = instruction >> 12;
 	switch (first_nibble) {
+	case 0:
+		if (instruction == 0x00EE) {
+			/* Return from subroutine */
+			if (m->sp == 0) {
+				printf("Empty stack\n");
+				return -1;
+			}
+			m->sp--;
+			m->pc = m->stack[m->sp];
+		} else {
+			goto err;
+		}
+		break;
 	case 1:
 		/* 1NNN: Jump to NNN */
 		m->pc = instruction & 0xfff;
@@ -88,10 +101,12 @@ int che_cycle(che_machine_t *m)
 		m->pc = instruction & 0xfff;
 		break;
 	default:
-		printf("Unrecognized instruction %04X\n", instruction);
-		return -1;
+		goto err;
 	}
 	return 0;
+err:
+	printf("Unrecognized instruction %04X\n", instruction);
+	return -1;
 }
 
 static
