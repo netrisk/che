@@ -1,2 +1,2 @@
 # che
-CHIP-8 Emulator
+The CHIP-8 Emulator project.
