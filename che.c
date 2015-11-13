@@ -1,6 +1,3 @@
-#ifndef CHE_H
-#define CHE_H
-
 #include <stdio.h>
 #include <stdint.h>
 #include <strings.h>
@@ -10,6 +7,23 @@
 #include <unistd.h>
 
 #define CHE_STACK_LEVELS 32
+#define CHE_MEMORY_SIZE  4096
+#define CHE_PROGRAM_START 0x200
+
+#define CHE_DBG_OPCODES
+
+/* macros to get some fields from opcodes */
+
+/* Get the X from opcodes of type:
+ * ?X??
+ * i.e 6XNN -> Extract the value of X
+ */
+#define CHE_GET_OPCODE_X(_opcode) (uint8_t)(_opcode & 0x0F00)
+
+/* Get the NN from opcodes that use it.
+ * ie. 6XNN
+ */
+#define CHE_GET_OPCODE_NN(_opcode) (uint8_t)(_opcode & 0x00FF)
 
 typedef struct che_regs_t
 {
@@ -28,13 +42,14 @@ typedef struct che_machine_t
 	int        sp;
 
 	/* Memory */
-	uint8_t    mem[4096];
+	uint8_t    mem[CHE_MEMORY_SIZE];
 } che_machine_t;
 
 static void che_machine_init(che_machine_t *m)
 {
-	bzero(&m->r, sizeof(che_regs_t));
-	m->pc = 0x200;
+	/* bzero was deprecated,memset is C90 compliant */
+	memset(&m->r,0, sizeof(che_regs_t));
+	m->pc = CHE_PROGRAM_START;/* loaded programs must start here */
 	m->sp = 0;
 }
 
@@ -68,11 +83,17 @@ int che_machine_file_load(che_machine_t *m, const char *filename,
 	return 0;
 }
 
+
 static inline
 int che_cycle(che_machine_t *m)
 {
 	uint16_t instruction = m->mem[m->pc] << 8 | m->mem[m->pc + 1];
 	uint8_t first_nibble = instruction >> 12;
+
+    #ifdef CHE_DBG_OPCODES
+    fprintf(stderr,"opcode=%x\n",instruction);
+	#endif /* CHE_DBG_OPCODES */
+
 	switch (first_nibble) {
 	case 0:
 		if (instruction == 0x00EE) {
@@ -100,6 +121,51 @@ int che_cycle(che_machine_t *m)
 		m->stack[m->sp++] = m->pc + 2;
 		m->pc = instruction & 0xfff;
 		break;
+	case 3: /* 3XNN skips the next instruction if VX=NN*/
+	    #ifdef CHE_DBG_OPCODES
+        fprintf(stderr,"Skip next instruction if register[%u] == %x\n",CHE_GET_OPCODE_X(instruction),
+                CHE_GET_OPCODE_NN(instruction));
+	    #endif /* CHE_DBG_OPCODES */
+        if( m->r.v[CHE_GET_OPCODE_X(instruction)] == CHE_GET_OPCODE_NN(instruction) ) {
+            #ifdef CHE_DBG_OPCODES
+	        fprintf(stderr,"Skipping next instruction\n");
+	        #endif /* CHE_DBG_OPCODES */
+            m->pc += 4; /* skip the next instruction */   
+        } else {
+            #ifdef CHE_DBG_OPCODES
+	        fprintf(stderr,"Not skipping next instruction\n");
+	        #endif /* CHE_DBG_OPCODES */
+            m->pc += 2; /* go for next instruction */
+        }
+        break;
+    case 4: /* 4XNN Skip the next instruction if VX != NN */
+        #ifdef CHE_DBG_OPCODES
+        fprintf(stderr,"Skip next instruction if register[%u] != %x\n",CHE_GET_OPCODE_X(instruction),
+                CHE_GET_OPCODE_NN(instruction));
+	    #endif /* CHE_DBG_OPCODES */
+        if( m->r.v[CHE_GET_OPCODE_X(instruction)] != CHE_GET_OPCODE_NN(instruction) ) {
+            #ifdef CHE_DBG_OPCODES
+	        fprintf(stderr,"Skipping next instruction\n");
+	        #endif /* CHE_DBG_OPCODES */
+            m->pc += 4;
+        } else {
+            #ifdef CHE_DBG_OPCODES
+	        fprintf(stderr,"Not skipping next instruction\n");
+	        #endif /* CHE_DBG_OPCODES */
+            m->pc += 2;
+        }
+        break;
+    case 6: /* 6XNN Set VX register to NN value */
+        m->r.v[CHE_GET_OPCODE_X(instruction)] = CHE_GET_OPCODE_NN(instruction);
+        #ifdef CHE_DBG_OPCODES
+        fprintf(stderr,"setting register[%u] to value:%x\n",CHE_GET_OPCODE_X(instruction),
+                CHE_GET_OPCODE_NN(instruction));
+	    #endif /* CHE_DBG_OPCODES */
+        m->pc += 2; /* next instruction */
+        break;
+    case 8:
+        
+        break;
 	default:
 		goto err;
 	}
@@ -124,12 +190,12 @@ static che_machine_t machine;
 int main(int argc, char **argv)
 {
 	if (argc < 2) {
-		printf("ERROR: specify the filename\n");
+		printf("ERROR: specify the program filename to be loaded\n");
 		return -1;
 	}
 
 	che_machine_init(&machine);
-	if (che_machine_file_load(&machine, argv[1], 0x200) != 0) {
+	if (che_machine_file_load(&machine, argv[1], CHE_PROGRAM_START) != 0) {
 		printf("ERROR: loading file\n");
 		return -1;
 	}
@@ -139,4 +205,3 @@ int main(int argc, char **argv)
 	return 0;
 }
 
-#endif /* CHE_H */
