@@ -227,7 +227,7 @@ int che_run(che_machine_t *m)
 		} else {
 			if (last_uptime != info.uptime) {
 				last_uptime = info.uptime;
-				che_log("TICKS: %3d KIPS: %d",
+				che_log("TICKS: %3d - KIPS: %d",
                                         ticks_per_second,
                                         cycles_per_second / 1000);
 				cycles_per_second = 0;
