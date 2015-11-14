@@ -16,11 +16,11 @@
 
 /* Temporization */
 #define CHE_TICK_HZ       60
-#define CHE_MIPS          (1 * 1000 * 1000) /* 1 MHz */
-#define CHE_TICK_CYCLES   (CHE_MIPS / CHE_TICK_HZ)
+#define CHE_KIPS          1000 /* 1 MHz */
+#define CHE_TICK_CYCLES   (CHE_KIPS * 1000 / CHE_TICK_HZ)
 #define CHE_TICK_TIME_NS  ((1 * 1000 * 1000 * 1000) / CHE_TICK_HZ)
 
-/* #define CHE_DBG_MIPS */
+/* #define CHE_DBG_KIPS */
 /* #define CHE_DBG_OPCODES */
 
 /* macros to get some fields from opcodes */
@@ -195,7 +195,7 @@ int che_run(che_machine_t *m)
 				return -1;
 		}
 
-		#ifdef CHE_DBG_MIPS
+		#ifdef CHE_DBG_KIPS
 		/* TODO: this will only work in linux */
 		static uint32_t last_uptime = 0;
 		static uint32_t cycles_per_second = 0;
@@ -207,11 +207,11 @@ int che_run(che_machine_t *m)
 		} else {
 			if (last_uptime != info.uptime) {
 				last_uptime = info.uptime;
-				che_log("MIPS: %d", cycles_per_second);
+				che_log("KIPS: %d", cycles_per_second / 1000);
 				cycles_per_second = 0;
 			}
 		}
-		#endif /* CHE_DBG_MIPS */
+		#endif /* CHE_DBG_KIPS */
 
 		/* Sleep until the next tick */
 		/* TODO: just a quick approach, the sleep time should be
