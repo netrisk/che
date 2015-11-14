@@ -217,7 +217,9 @@ int che_run(che_machine_t *m)
 		/* TODO: this will only work in linux */
 		static uint32_t last_uptime = 0;
 		static uint32_t cycles_per_second = 0;
+		static uint32_t ticks_per_second = 0;
 		cycles_per_second += tick_cycles;
+		ticks_per_second++;
 		struct sysinfo info;
 		sysinfo(&info);
 		if (last_uptime == 0) {
@@ -225,8 +227,11 @@ int che_run(che_machine_t *m)
 		} else {
 			if (last_uptime != info.uptime) {
 				last_uptime = info.uptime;
-				che_log("KIPS: %d", cycles_per_second / 1000);
+				che_log("TICKS: %3d KIPS: %d",
+                                        ticks_per_second,
+                                        cycles_per_second / 1000);
 				cycles_per_second = 0;
+				ticks_per_second = 0;
 			}
 		}
 		#endif /* CHE_DBG_KIPS */
