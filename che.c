@@ -92,7 +92,7 @@ int che_cycle(che_machine_t *m)
 	uint8_t first_nibble = instruction >> 12;
 
     #ifdef CHE_DBG_OPCODES
-    che_log("opcode=%x",instruction);
+    che_log("opcode=%04x",instruction);
 	#endif /* CHE_DBG_OPCODES */
 
 	switch (first_nibble) {
