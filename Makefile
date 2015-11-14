@@ -1,3 +1,7 @@
+.PHONY: all
+
+all: che
+
 che: che.c
 	gcc -g -o che che.c -Wall -Werror
 
