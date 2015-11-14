@@ -1,17 +1,26 @@
+#include <time.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
 #include <strings.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/sysinfo.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include "che_log.h"
 
-#define CHE_STACK_LEVELS 32
-#define CHE_MEMORY_SIZE  4096
+#define CHE_STACK_LEVELS  32
+#define CHE_MEMORY_SIZE   4096
 #define CHE_PROGRAM_START 0x200
 
+/* Temporization */
+#define CHE_TICK_HZ       60
+#define CHE_MIPS          (1 * 1000 * 1000) /* 1 MHz */
+#define CHE_TICK_CYCLES   (CHE_MIPS / CHE_TICK_HZ)
+#define CHE_TICK_TIME_NS  ((1 * 1000 * 1000 * 1000) / CHE_TICK_HZ)
+
+#define CHE_DBG_MIPS
 #define CHE_DBG_OPCODES
 
 /* macros to get some fields from opcodes */
@@ -180,8 +189,35 @@ static
 int che_run(che_machine_t *m)
 {
 	for (;;) {
-		if (che_cycle(m) != 0)
-			return -1;
+		int tick_cycles = 0;
+		while (tick_cycles++ < CHE_TICK_CYCLES) {
+			if (che_cycle(m) != 0)
+				return -1;
+		}
+
+		#ifdef CHE_DBG_MIPS
+		/* TODO: this will only work in linux */
+		static uint32_t last_uptime = 0;
+		static uint32_t cycles_per_second = 0;
+		cycles_per_second += tick_cycles;
+		struct sysinfo info;
+		sysinfo(&info);
+		if (last_uptime == 0) {
+			last_uptime = info.uptime;
+		} else {
+			if (last_uptime != info.uptime) {
+				last_uptime = info.uptime;
+				che_log("MIPS: %d", cycles_per_second);
+				cycles_per_second = 0;
+			}
+		}
+		#endif /* CHE_DBG_MIPS */
+
+		/* Sleep until the next tick */
+		/* TODO: just a quick approach, the sleep time should be
+                         correctly calculated with the uptime */
+		struct timespec sleep_time = { 0, CHE_TICK_TIME_NS };
+		while (nanosleep(&sleep_time, &sleep_time) != 0);
 	}
 	return 0;
 }
@@ -205,4 +241,3 @@ int main(int argc, char **argv)
 
 	return 0;
 }
-
