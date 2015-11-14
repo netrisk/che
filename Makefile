@@ -2,8 +2,8 @@
 
 all: che
 
-che: che.c
-	gcc -g -o che che.c -Wall -Werror
+che: che.c che_log.c che_log.h
+	gcc -g -o che che.c che_log.c -Wall -Werror
 
 clean:
 	rm -f che

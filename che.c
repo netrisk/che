@@ -6,6 +6,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include "che_log.h"
 
 #define CHE_STACK_LEVELS 32
 #define CHE_MEMORY_SIZE  4096
@@ -91,7 +92,7 @@ int che_cycle(che_machine_t *m)
 	uint8_t first_nibble = instruction >> 12;
 
     #ifdef CHE_DBG_OPCODES
-    fprintf(stderr,"opcode=%x\n",instruction);
+    che_log("opcode=%x",instruction);
 	#endif /* CHE_DBG_OPCODES */
 
 	switch (first_nibble) {
@@ -123,34 +124,34 @@ int che_cycle(che_machine_t *m)
 		break;
 	case 3: /* 3XNN skips the next instruction if VX=NN*/
 	    #ifdef CHE_DBG_OPCODES
-        fprintf(stderr,"Skip next instruction if register[%u] == %x\n",CHE_GET_OPCODE_X(instruction),
+        che_log("Skip next instruction if register[%u] == %x",CHE_GET_OPCODE_X(instruction),
                 CHE_GET_OPCODE_NN(instruction));
 	    #endif /* CHE_DBG_OPCODES */
         if( m->r.v[CHE_GET_OPCODE_X(instruction)] == CHE_GET_OPCODE_NN(instruction) ) {
             #ifdef CHE_DBG_OPCODES
-	        fprintf(stderr,"Skipping next instruction\n");
+	        che_log("Skipping next instruction");
 	        #endif /* CHE_DBG_OPCODES */
             m->pc += 4; /* skip the next instruction */   
         } else {
             #ifdef CHE_DBG_OPCODES
-	        fprintf(stderr,"Not skipping next instruction\n");
+	        che_log("Not skipping next instruction");
 	        #endif /* CHE_DBG_OPCODES */
             m->pc += 2; /* go for next instruction */
         }
         break;
     case 4: /* 4XNN Skip the next instruction if VX != NN */
         #ifdef CHE_DBG_OPCODES
-        fprintf(stderr,"Skip next instruction if register[%u] != %x\n",CHE_GET_OPCODE_X(instruction),
+        che_log("Skip next instruction if register[%u] != %x",CHE_GET_OPCODE_X(instruction),
                 CHE_GET_OPCODE_NN(instruction));
 	    #endif /* CHE_DBG_OPCODES */
         if( m->r.v[CHE_GET_OPCODE_X(instruction)] != CHE_GET_OPCODE_NN(instruction) ) {
             #ifdef CHE_DBG_OPCODES
-	        fprintf(stderr,"Skipping next instruction\n");
+	        che_log("Skipping next instruction");
 	        #endif /* CHE_DBG_OPCODES */
             m->pc += 4;
         } else {
             #ifdef CHE_DBG_OPCODES
-	        fprintf(stderr,"Not skipping next instruction\n");
+	        che_log("Not skipping next instruction");
 	        #endif /* CHE_DBG_OPCODES */
             m->pc += 2;
         }
@@ -158,7 +159,7 @@ int che_cycle(che_machine_t *m)
     case 6: /* 6XNN Set VX register to NN value */
         m->r.v[CHE_GET_OPCODE_X(instruction)] = CHE_GET_OPCODE_NN(instruction);
         #ifdef CHE_DBG_OPCODES
-        fprintf(stderr,"setting register[%u] to value:%x\n",CHE_GET_OPCODE_X(instruction),
+        che_log("setting register[%u] to value:%x",CHE_GET_OPCODE_X(instruction),
                 CHE_GET_OPCODE_NN(instruction));
 	    #endif /* CHE_DBG_OPCODES */
         m->pc += 2; /* next instruction */
