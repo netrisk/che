@@ -48,7 +48,6 @@ typedef struct che_machine_t
 
 static void che_machine_init(che_machine_t *m)
 {
-	/* bzero was deprecated,memset is C90 compliant */
 	memset(&m->r,0, sizeof(che_regs_t));
 	m->pc = CHE_PROGRAM_START;/* loaded programs must start here */
 	m->sp = 0;
