@@ -19,7 +19,7 @@
  * ?X??
  * i.e 6XNN -> Extract the value of X
  */
-#define CHE_GET_OPCODE_X(_opcode) (uint8_t)(_opcode & 0x0F00)
+#define CHE_GET_OPCODE_X(_opcode) ((_opcode >> 8) & 0xf)
 
 /* Get the NN from opcodes that use it.
  * ie. 6XNN
