@@ -9,6 +9,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include "che_log.h"
+#include "che_scr.h"
 
 #define CHE_STACK_LEVELS  32
 #define CHE_MEMORY_SIZE   4096
@@ -60,14 +61,23 @@ typedef struct che_machine_t
 
 	/* Key support */
 	uint16_t   keymask;
+
+	/* Display */
+	che_scr_t  screen;
 } che_machine_t;
 
-static void che_machine_init(che_machine_t *m)
+static int che_machine_init(che_machine_t *m)
 {
 	memset(&m->r,0, sizeof(che_regs_t));
 	m->pc = CHE_PROGRAM_START;/* loaded programs must start here */
 	m->sp = 0;
 	m->keymask = 0;
+	return che_scr_init(&m->screen, 64, 32);
+}
+
+static void che_machine_end(che_machine_t *m)
+{
+	che_scr_end(&m->screen);
 }
 
 static
@@ -201,6 +211,7 @@ int che_run(che_machine_t *m)
 			if (che_cycle(m) != 0)
 				return -1;
 		}
+		che_scr_draw_screen(&m->screen);
 
 		#ifdef CHE_DBG_KIPS
 		/* TODO: this will only work in linux */
@@ -245,6 +256,8 @@ int main(int argc, char **argv)
 	}
 
 	che_run(&machine);
+	
+	che_machine_end(&machine);
 
 	return 0;
 }
