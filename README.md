@@ -7,4 +7,4 @@ To compile type make.
 Comes with an example dummy chip 8 executable.
 
 To execute example dummy file type:
-	./che look.ch8
+	./che loop.ch8
