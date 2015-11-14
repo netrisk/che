@@ -20,8 +20,8 @@
 #define CHE_TICK_CYCLES   (CHE_MIPS / CHE_TICK_HZ)
 #define CHE_TICK_TIME_NS  ((1 * 1000 * 1000 * 1000) / CHE_TICK_HZ)
 
-#define CHE_DBG_MIPS
-#define CHE_DBG_OPCODES
+/* #define CHE_DBG_MIPS */
+/* #define CHE_DBG_OPCODES */
 
 /* macros to get some fields from opcodes */
 
