@@ -172,7 +172,7 @@ int che_cycle(che_machine_t *m)
 	}
 	return 0;
 err:
-	printf("Unrecognized instruction %04X\n", instruction);
+	printf("Unrecognized instruction %04X at 0x%03X\n", instruction, m->pc);
 	return -1;
 }
 
