@@ -20,6 +20,9 @@
 #define CHE_TICK_CYCLES   (CHE_KIPS * 1000 / CHE_TICK_HZ)
 #define CHE_TICK_TIME_NS  ((1 * 1000 * 1000 * 1000) / CHE_TICK_HZ)
 
+/* To check if a key is pressed */
+#define CHE_KEY_PRESSED(_keymask, _key) ((_keymask >> _key) & 1)
+
 /* #define CHE_DBG_KIPS */
 /* #define CHE_DBG_OPCODES */
 
@@ -54,6 +57,9 @@ typedef struct che_machine_t
 
 	/* Memory */
 	uint8_t    mem[CHE_MEMORY_SIZE];
+
+	/* Key support */
+	uint16_t   keymask;
 } che_machine_t;
 
 static void che_machine_init(che_machine_t *m)
@@ -61,6 +67,7 @@ static void che_machine_init(che_machine_t *m)
 	memset(&m->r,0, sizeof(che_regs_t));
 	m->pc = CHE_PROGRAM_START;/* loaded programs must start here */
 	m->sp = 0;
+	m->keymask = 0;
 }
 
 static
