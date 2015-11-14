@@ -24,7 +24,7 @@
 /* To check if a key is pressed */
 #define CHE_KEY_PRESSED(_keymask, _key) ((_keymask >> _key) & 1)
 
-/* #define CHE_DBG_KIPS */
+/* #define CHE_DBG_STATS */
 /* #define CHE_DBG_OPCODES */
 
 /* macros to get some fields from opcodes */
@@ -59,6 +59,10 @@ typedef struct che_machine_t
 	/* Memory */
 	uint8_t    mem[CHE_MEMORY_SIZE];
 
+	/* Timers */
+	uint8_t    delay_timer;
+	uint8_t    sound_timer;
+
 	/* Key support */
 	uint16_t   keymask;
 
@@ -72,6 +76,8 @@ static int che_machine_init(che_machine_t *m)
 	m->pc = CHE_PROGRAM_START;/* loaded programs must start here */
 	m->sp = 0;
 	m->keymask = 0;
+	m->delay_timer = 0;
+	m->sound_timer = 0;
 	return che_scr_init(&m->screen, 64, 32);
 }
 
@@ -116,6 +122,7 @@ int che_cycle(che_machine_t *m)
 {
 	uint16_t instruction = m->mem[m->pc] << 8 | m->mem[m->pc + 1];
 	uint8_t first_nibble = instruction >> 12;
+	uint8_t lowest_byte = instruction & 0xff;
 
     #ifdef CHE_DBG_OPCODES
     che_log("opcode=%04x",instruction);
@@ -191,8 +198,19 @@ int che_cycle(che_machine_t *m)
         m->pc += 2; /* next instruction */
         break;
     case 8:
-        
         break;
+	case 0xf:
+		if (lowest_byte == 0x07) {
+			m->r.v[CHE_GET_OPCODE_X(instruction)] = m->delay_timer;
+		} else if (lowest_byte == 0x15) {
+			m->delay_timer = m->r.v[CHE_GET_OPCODE_X(instruction)];
+		} else if (lowest_byte == 0x18) {
+			m->sound_timer = m->r.v[CHE_GET_OPCODE_X(instruction)];
+		} else {
+			goto err;
+		}
+		m->pc += 2;
+		break;
 	default:
 		goto err;
 	}
@@ -213,7 +231,7 @@ int che_run(che_machine_t *m)
 		}
 		che_scr_draw_screen(&m->screen);
 
-		#ifdef CHE_DBG_KIPS
+		#ifdef CHE_DBG_STATS
 		/* TODO: this will only work in linux */
 		static uint32_t last_uptime = 0;
 		static uint32_t cycles_per_second = 0;
@@ -234,13 +252,18 @@ int che_run(che_machine_t *m)
 				ticks_per_second = 0;
 			}
 		}
-		#endif /* CHE_DBG_KIPS */
+		#endif /* CHE_DBG_STATS */
 
 		/* Sleep until the next tick */
 		/* TODO: just a quick approach, the sleep time should be
                          correctly calculated with the uptime */
 		struct timespec sleep_time = { 0, CHE_TICK_TIME_NS };
 		while (nanosleep(&sleep_time, &sleep_time) != 0);
+		
+		if (m->delay_timer)
+			m->delay_timer--;
+		if (m->sound_timer)
+			m->sound_timer--;
 	}
 	return 0;
 }
