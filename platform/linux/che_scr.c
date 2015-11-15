@@ -19,9 +19,8 @@ int che_scr_init(che_scr_t *s, int width, int height)
 /* TODO: Maybe this function can be in general code, not platform code */
 bool che_scr_draw_sprite(che_scr_t *s, uint8_t *buf, int h, int x, int y)
 {
-	uint8_t *spr_ptr;
-	uint8_t spr_data[16]; /* Height of 16 at most */
-	int x_cut, y_cut, h_real;
+	bool collision = false;
+	int h_visible;
 	int i;
 
 	/* Wrap coordinates around the screen */
@@ -31,37 +30,27 @@ bool che_scr_draw_sprite(che_scr_t *s, uint8_t *buf, int h, int x, int y)
 		y = y % s->h;
 
 	/* Cut the sprite if necessary */
-	x_cut = x + 8 - s->w;
-	y_cut = y + h - s->h;
-	if (x_cut < 0)
-		x_cut = 0;
-	if (y_cut < 0)
-		y_cut = 0;
-	h_real = h - y_cut;
-	if (x_cut == 0 && y_cut == 0) {
-		spr_ptr = buf;
-	} else {
-		spr_ptr = spr_data;
-		for (i = 0; i < h_real; i++)
-			spr_data[i] = (buf[i] >> x_cut) << x_cut;
-	}
+	if (y + h < s->h)
+		h_visible = h;
+	else
+		h_visible = s->h - y;
 
 	/* Draw content in memory */
-	bool collision = false;
-	for (i = 0; i < h_real; i++) {
+	for (i = 0; i < h_visible; i++) {
+		/* Leftmost byte bits */
 		int rsh = x & 7;
-		int pos = s->w * (y + i) + (x >> 3);
-		uint8_t spr_byte = (spr_ptr[i] >> rsh);
+		int pos = (s->w >> 3) * (y + i) + (x >> 3);
+		uint8_t spr_byte = (buf[i] >> rsh);
 		uint8_t xor_byte = s->data[pos] ^ spr_byte;
-			
 		if (!collision) {
 			uint8_t or_byte = s->data[pos] | spr_byte;
 			collision = or_byte != xor_byte;
 		}
 		s->data[pos] = xor_byte;
-		if (!x_cut && rsh) {
+		/* Righmost byte bits */
+		if (rsh && x < s->w - 8) {
 			int lsh = 8 - rsh;
-			spr_byte = (spr_ptr[i] << lsh);
+			spr_byte = (buf[i] << lsh);
 			xor_byte = s->data[pos + 1] ^ spr_byte;
 			if (!collision) {
 				uint8_t or_byte = s->data[pos + 1] | spr_byte;
@@ -84,7 +73,7 @@ void che_scr_clear(che_scr_t *s)
 	uint8_t sprite = 0xff;
 	int x;
 	for (x = 0; x < s->w; x++)
-		che_scr_draw_sprite(s, &sprite, 1, x, x);
+		che_scr_draw_sprite(s, &sprite, 1, x + 16, x);
 	#endif
 }
 
@@ -104,7 +93,7 @@ void che_scr_draw_screen(che_scr_t *s)
 		int pos = 0;
 		for (x = 0; x < s->w; x++) {
 			char ch;
-			if ((s->data[y * s->w + (x >> 3)] >> (7 - (x & 7))) & 1)
+			if ((s->data[y * (s->w >> 3) + (x >> 3)] >> (7 - (x & 7))) & 1)
 				ch = 'O';
 			else
 				ch = '.';
