@@ -1,2 +1,3 @@
 # First example of assembler
-MOV V0,0
+START: MOV V0,0
+
