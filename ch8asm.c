@@ -186,7 +186,7 @@ int main(int argc,char** argv){
    strcpy(obj_filename,argv[1]);
    char* dot = strrstr(obj_filename,".");
    dot++;
-   strcpy(dot,"obj");
+   strcpy(dot,"ch8");
 
    asm_file = fopen(argv[1],"r");
    obj_file = fopen(obj_filename,"w+");
