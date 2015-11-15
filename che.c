@@ -5,7 +5,6 @@
 #include <strings.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <sys/sysinfo.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include "che_log.h"
@@ -24,8 +23,16 @@
 /* To check if a key is pressed */
 #define CHE_KEY_PRESSED(_keymask, _key) ((_keymask >> _key) & 1)
 
-/* #define CHE_DBG_STATS */
-/* #define CHE_DBG_OPCODES */
+#define CHE_DBG_STATS 
+#define CHE_DBG_OPCODES 
+
+#ifdef CHE_DBG_STATS
+    #if __APPLE__
+        #include <sys/sysctl.h>
+    #else /* other platforms like linux */
+        #include <sys/sysinfo.h>
+    #endif /* __APPLE__ */
+#endif /* CHE_DBG_STATS */
 
 /* macros to get some fields from opcodes */
 
@@ -220,6 +227,12 @@ err:
 	return -1;
 }
 
+#if __APPLE__
+typedef struct sysinfo {
+    uint32_t uptime;
+}sysinfo;
+#endif /* __APPLE__ */
+
 static
 int che_run(che_machine_t *m)
 {
@@ -239,7 +252,14 @@ int che_run(che_machine_t *m)
 		cycles_per_second += tick_cycles;
 		ticks_per_second++;
 		struct sysinfo info;
+        #if __APPLE__
+        struct timeval uptime;
+        size_t len = sizeof(uptime);
+        sysctlbyname("kern.boottime",&uptime,&len,NULL,0);
+        info.uptime = uptime.tv_sec;
+        #else
 		sysinfo(&info);
+		#endif /* __APPLE__ */
 		if (last_uptime == 0) {
 			last_uptime = info.uptime;
 		} else {
