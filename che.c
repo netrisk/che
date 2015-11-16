@@ -40,6 +40,8 @@
  */
 #define CHE_GET_OPCODE_NN(_opcode) (uint8_t)(_opcode & 0x00FF)
 
+#define CHE_GET_BYTE(_opcode, _n) ((_opcode >> (_n << 3)) & 0xf)
+
 typedef struct che_regs_t
 {
 	uint8_t  v[16];
