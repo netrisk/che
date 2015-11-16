@@ -9,6 +9,7 @@
 #include <unistd.h>
 #include "che_log.h"
 #include "che_scr.h"
+#include "che_time.h"
 
 #define CHE_STACK_LEVELS  32
 #define CHE_MEMORY_SIZE   4096
@@ -24,7 +25,7 @@
 #define CHE_KEY_PRESSED(_keymask, _key) ((_keymask >> _key) & 1)
 
 #define CHE_DBG_STATS 
-#define CHE_DBG_OPCODES 
+/* #define CHE_DBG_OPCODES */
 
 #ifdef CHE_DBG_STATS
     #if __APPLE__
@@ -239,6 +240,9 @@ typedef struct sysinfo {
 static
 int che_run(che_machine_t *m)
 {
+	che_time_t che_last_uptime;
+	che_time_uptime(&che_last_uptime);
+	//static const che_time_t che_time_tick = { 0, CHE_TICK_TIME_NS };
 	for (;;) {
 		int tick_cycles = 0;
 		while (tick_cycles++ < CHE_TICK_CYCLES) {
@@ -280,6 +284,17 @@ int che_run(che_machine_t *m)
 		/* Sleep until the next tick */
 		/* TODO: just a quick approach, the sleep time should be
                          correctly calculated with the uptime */
+		//che_time_t next_uptime = che_last_uptime;
+		//che_time_add(&next_uptime, &che_time_tick);
+		//che_time_t now;
+		//che_time_uptime(&now);
+		//if (che_time_cmp(&now, &next_uptime) < 0) {
+		//	che_time_t che_sleep_time = next_uptime;
+		//	che_time_sub(&che_sleep_time, &now);
+		//	struct timespec sleep_time = { 0, che_sleep_time.ns };
+		//	while (nanosleep(&sleep_time, &sleep_time) != 0);
+		//}
+
 		struct timespec sleep_time = { 0, CHE_TICK_TIME_NS };
 		while (nanosleep(&sleep_time, &sleep_time) != 0);
 		
