@@ -153,6 +153,9 @@ int che_cycle(che_machine_t *m)
 	case 1:
 		/* 1NNN: Jump to NNN */
 		m->pc = instruction & 0xfff;
+	    #ifdef CHE_DBG_OPCODES
+	    che_log("Jumping to address=%x",m->pc);
+	    #endif /* CHE_DBG_OPCODES */
 		break;
 	case 2:
 		/* 2NNN: Call NNN Sub */
