@@ -2,7 +2,7 @@
 #include <ctype.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/syslimits.h>
+#include <stdint.h>
 
 #define CH8ASM_DBG
 
@@ -177,7 +177,7 @@ static int ch8asm_translate(ch8asm_t* ch8asm,FILE* obj_file)
 int main(int argc,char** argv){
    FILE* asm_file;
    FILE* obj_file;
-   char obj_filename[PATH_MAX+1];
+   char obj_filename[256];
 
    if( argc < 2 ) {
         fprintf(stderr,"ERROR:Specifify the assembler file\n");
