@@ -8,7 +8,7 @@
 
 #define CH8ASM_DBG
 //#define CH8ASM_DBG_LINE_READ
-//#define CH8ASM_DBG_INSTRUCTIONS_PARSE
+#define CH8ASM_DBG_INSTRUCTIONS_PARSE
 //#define CH8ASM_DBG_LABELS
 
 #define CH8ASM_MAX_LINE_LEN         80
@@ -141,19 +141,25 @@ static int ch8asm_parse_parameters(const char* instruction,char* parameters,
     #endif /* CH8ASM_DBG_INSTRUCTIONS_PARSE*/
     parameters = ltrim(parameters); 
     if( 0 == strcmp(instruction,"MOV") ) {
+        uint8_t base;
+
         parsed_params->rec.record = parameters[1]-'0';
         parameters = strstr(parameters,",");
         parameters++;
-        parsed_params->rec.value = strtoul(parameters,NULL,10);
+        base = ch8asm_parse_number_base(parameters);
+        parsed_params->rec.value = strtoul(parameters,NULL,base);
         #ifdef CH8ASM_DBG_INSTRUCTIONS_PARSE
         che_log("MOV command. Register=%u value=%u",parsed_params->rec.record,
                 parsed_params->rec.value);
         #endif /* CH8ASM_DBG_INSTRUCTIONS_PARSE */
     } else if( 0 == strcmp(instruction,"SNE") ) {
+        uint8_t base;
+
         parsed_params->rec.record = parameters[1]-'0';
         parameters = strstr(parameters,",");
         parameters++;
-        parsed_params->rec.value = strtoul(parameters,NULL,10);
+        base = ch8asm_parse_number_base(parameters);
+        parsed_params->rec.value = strtoul(parameters,NULL,base);
         #ifdef CH8ASM_DBG_INSTRUCTIONS_PARSE
         che_log("SNE command. Register=%u value=%u",parsed_params->rec.record,
                 parsed_params->rec.value);
