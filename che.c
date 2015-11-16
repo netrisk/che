@@ -124,8 +124,8 @@ int che_cycle(che_machine_t *m)
 	uint8_t first_nibble = opcode >> 12;
 	uint8_t lowest_byte = opcode & 0xff;
 
-    #ifdef CHE_DBG_OPCODES
-    che_log("opcode=%04x",opcode);
+	#ifdef CHE_DBG_OPCODES
+	che_log("opcode=%04x",opcode);
 	#endif /* CHE_DBG_OPCODES */
 
 	switch (first_nibble) {
@@ -145,9 +145,9 @@ int che_cycle(che_machine_t *m)
 	case 1:
 		/* 1NNN: Jump to NNN */
 		m->pc = opcode & 0xfff;
-	    #ifdef CHE_DBG_OPCODES
-	    che_log("Jumping to address=%x",m->pc);
-	    #endif /* CHE_DBG_OPCODES */
+		#ifdef CHE_DBG_OPCODES
+		che_log("Jumping to address=%x",m->pc);
+		#endif /* CHE_DBG_OPCODES */
 		break;
 	case 2:
 		/* 2NNN: Call NNN Sub */
@@ -159,49 +159,51 @@ int che_cycle(che_machine_t *m)
 		m->pc = opcode & 0xfff;
 		break;
 	case 3: /* 3XNN skips the next instruction if VX=NN*/
-	    #ifdef CHE_DBG_OPCODES
-        che_log("Skip next instruction if register[%u] == %x",CHE_GET_OPCODE_X(opcode),
-                CHE_GET_OPCODE_NN(opcode));
-	    #endif /* CHE_DBG_OPCODES */
-        if( m->r.v[CHE_GET_OPCODE_X(opcode)] == CHE_GET_OPCODE_NN(opcode) ) {
-            #ifdef CHE_DBG_OPCODES
-	        che_log("Skipping next instruction");
-	        #endif /* CHE_DBG_OPCODES */
-            m->pc += 4; /* skip the next instruction */   
-        } else {
-            #ifdef CHE_DBG_OPCODES
-	        che_log("Not skipping next instruction");
-	        #endif /* CHE_DBG_OPCODES */
-            m->pc += 2; /* go for next instruction */
-        }
-        break;
-    case 4: /* 4XNN Skip the next instruction if VX != NN */
-        #ifdef CHE_DBG_OPCODES
-        che_log("Skip next instruction if register[%u] != %x",CHE_GET_OPCODE_X(opcode),
-                CHE_GET_OPCODE_NN(opcode));
-	    #endif /* CHE_DBG_OPCODES */
-        if( m->r.v[CHE_GET_OPCODE_X(opcode)] != CHE_GET_OPCODE_NN(opcode) ) {
-            #ifdef CHE_DBG_OPCODES
-	        che_log("Skipping next instruction");
-	        #endif /* CHE_DBG_OPCODES */
-            m->pc += 4;
-        } else {
-            #ifdef CHE_DBG_OPCODES
-	        che_log("Not skipping next instruction");
-	        #endif /* CHE_DBG_OPCODES */
-            m->pc += 2;
-        }
-        break;
-    case 6: /* 6XNN Set VX register to NN value */
-        m->r.v[CHE_GET_OPCODE_X(opcode)] = CHE_GET_OPCODE_NN(opcode);
-        #ifdef CHE_DBG_OPCODES
-        che_log("setting register[%u] to value:%x",CHE_GET_OPCODE_X(opcode),
-                CHE_GET_OPCODE_NN(opcode));
-	    #endif /* CHE_DBG_OPCODES */
-        m->pc += 2; /* next instruction */
-        break;
-    case 8:
-        break;
+		#ifdef CHE_DBG_OPCODES
+		che_log("Skip next instruction if register[%u] == %x",
+		        CHE_GET_OPCODE_X(opcode),
+		        CHE_GET_OPCODE_NN(opcode));
+		#endif /* CHE_DBG_OPCODES */
+		if( m->r.v[CHE_GET_OPCODE_X(opcode)] == CHE_GET_OPCODE_NN(opcode) ) {
+			#ifdef CHE_DBG_OPCODES
+			che_log("Skipping next instruction");
+			#endif /* CHE_DBG_OPCODES */
+			m->pc += 4; /* skip the next instruction */   
+		} else {
+			#ifdef CHE_DBG_OPCODES
+			che_log("Not skipping next instruction");
+			#endif /* CHE_DBG_OPCODES */
+			m->pc += 2; /* go for next instruction */
+		}
+		break;
+	case 4: /* 4XNN Skip the next instruction if VX != NN */
+		#ifdef CHE_DBG_OPCODES
+		che_log("Skip next instruction if register[%u] != %x",
+		        CHE_GET_OPCODE_X(opcode),
+		        CHE_GET_OPCODE_NN(opcode));
+		#endif /* CHE_DBG_OPCODES */
+		if( m->r.v[CHE_GET_OPCODE_X(opcode)] != CHE_GET_OPCODE_NN(opcode) ) {
+			#ifdef CHE_DBG_OPCODES
+				che_log("Skipping next instruction");
+				#endif /* CHE_DBG_OPCODES */
+			m->pc += 4;
+		} else {
+			#ifdef CHE_DBG_OPCODES
+			che_log("Not skipping next instruction");
+			#endif /* CHE_DBG_OPCODES */
+			m->pc += 2;
+		}
+		break;
+	case 6: /* 6XNN Set VX register to NN value */
+		m->r.v[CHE_GET_OPCODE_X(opcode)] = CHE_GET_OPCODE_NN(opcode);
+		#ifdef CHE_DBG_OPCODES
+		che_log("setting register[%u] to value:%x",CHE_GET_OPCODE_X(opcode),
+		        CHE_GET_OPCODE_NN(opcode));
+		#endif /* CHE_DBG_OPCODES */
+		m->pc += 2; /* next instruction */
+		break;
+	case 8:
+		break;
 	case 0xf:
 		if (lowest_byte == 0x07) {
 			m->r.v[CHE_GET_OPCODE_X(opcode)] = m->delay_timer;
@@ -272,8 +274,8 @@ int che_run(che_machine_t *m)
 			if (che_time_get_s(&last_uptime) != che_time_get_s(&now)) {
 				last_uptime = now;
 				che_log("TICKS: %3d - KIPS: %d",
-                                        ticks_per_second,
-                                        cycles_per_second / 1000);
+				        ticks_per_second,
+				        cycles_per_second / 1000);
 				cycles_per_second = 0;
 				ticks_per_second = 0;
 			}
