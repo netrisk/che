@@ -7,6 +7,9 @@
 #include "che_log.h"
 
 #define CH8ASM_DBG
+//#define CH8ASM_DBG_LINE_READ
+//#define CH8ASM_DBG_INSTRUCTIONS_PARSE
+//#define CH8ASM_DBG_LABELS
 
 #define CH8ASM_MAX_LINE_LEN         80
 #define CH8ASM_MAX_LABEL_LEN        20
@@ -91,7 +94,7 @@ static char *ltrim(char *str)
     return str;
 }
 
-
+#ifdef CH8ASM_DBG_LABELS
 static void ch8asm_dump_labels(ch8asm_t* ch8asm)
 {
     uint8_t i;
@@ -103,34 +106,35 @@ static void ch8asm_dump_labels(ch8asm_t* ch8asm)
                 ch8asm->labels[i].address);
     }
 }
+#endif /* CH8ASM_DBG_LABELS */
 
 static int ch8asm_parse_parameters(const char* instruction,char* parameters,
                                    instruction_params_t* parsed_params)
 {
     int ret = 0;
 
-    #ifdef CH8ASM_DBG
+    #ifdef CH8ASM_DBG_INSTRUCTIONS_PARSE
     che_log("instruction=%s parameters=%s",instruction,parameters);
-    #endif /* CH8ASM_DBG */
+    #endif /* CH8ASM_DBG_INSTRUCTIONS_PARSE*/
     parameters = ltrim(parameters); 
     if( 0 == strcmp(instruction,"MOV") ) {
         parsed_params->rec.record = parameters[1]-'0';
         parameters = strstr(parameters,",");
         parameters++;
         parsed_params->rec.value = strtoul(parameters,NULL,10);
-        #ifdef CH8ASM_DBG
+        #ifdef CH8ASM_DBG_INSTRUCTIONS_PARSE
         che_log("MOV command. Register=%u value=%u",parsed_params->rec.record,
                 parsed_params->rec.value);
-        #endif /* CH8ASM_DBG */
+        #endif /* CH8ASM_DBG_INSTRUCTIONS_PARSE */
     } else if( 0 == strcmp(instruction,"SNE") ) {
         parsed_params->rec.record = parameters[1]-'0';
         parameters = strstr(parameters,",");
         parameters++;
         parsed_params->rec.value = strtoul(parameters,NULL,10);
-        #ifdef CH8ASM_DBG
+        #ifdef CH8ASM_DBG_INSTRUCTIONS_PARSE
         che_log("SNE command. Register=%u value=%u",parsed_params->rec.record,
                 parsed_params->rec.value);
-        #endif /* CH8ASM_DBG */
+        #endif /* CH8ASM_DBG_INSTRUCTIONS_PARSE*/
     } else if( 0 == strcmp(instruction,"JMP") ) {
         char* suffix = strstr(parameters,"h");
         uint8_t base;
@@ -141,9 +145,9 @@ static int ch8asm_parse_parameters(const char* instruction,char* parameters,
             base = 10;
         }
         parsed_params->address = strtoul(parameters,NULL,base);
-        #ifdef CH8ASM_DBG
+        #ifdef CH8ASM_DBG_INSTRUCTIONS_PARSE
         che_log("JMP command.address=%u",parsed_params->address);
-        #endif /* CH8ASM_DBG */
+        #endif /* CH8ASM_DBG_INSTRUCTIONS_PARSE */
 
     } else {
         che_log("Instruction [%s] not recognized",instruction);
@@ -167,15 +171,9 @@ static int ch8asm_process_line(ch8asm_t* ch8asm)
     /* skip left blanks and coments line */
     line = ltrim(ch8asm->line);
     if( line[0] == '\0' ) { /* blank line */
-        #ifdef CH8ASM_DBG
-        che_log("Discarding blank line");
-        #endif /* CH8ASM_DBG */
         return 1;   
     }
     if( line[0] == '#' ) {
-        #ifdef CH8ASM_DBG
-        che_log("discarding a comment");
-        #endif /* CH8ASM_DBG */
         return 1; /*it is a commnet */
     }
     /* parse label */
@@ -271,9 +269,9 @@ int main(int argc,char** argv){
    
    while( fgets(ch8asm.line,sizeof(ch8asm.line),asm_file) != NULL ){
        int res;
-       #ifdef CH8ASM_DBG
+       #ifdef CH8ASM_DBG_LINE_READ
        che_log("line %zu=%s",ch8asm.lineno,ch8asm.line);
-       #endif /* CH8ASM_DBG */
+       #endif /* CH8ASM_DBG_LINE_READ */
        
        res = ch8asm_process_line(&ch8asm);
        if( -1 == res ) {
@@ -292,6 +290,8 @@ int main(int argc,char** argv){
    }
    fclose(asm_file);
    fclose(obj_file);
+   #ifdef CH8ASM_DBG_LABELS
    ch8asm_dump_labels(&ch8asm);
+   #endif /* CH8ASM_DBG_LABELS */
    return 0;
 }
