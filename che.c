@@ -27,14 +27,6 @@
 #define CHE_DBG_STATS 
 /* #define CHE_DBG_OPCODES */
 
-#ifdef CHE_DBG_STATS
-    #if __APPLE__
-        #include <sys/sysctl.h>
-    #else /* other platforms like linux */
-        #include <sys/sysinfo.h>
-    #endif /* __APPLE__ */
-#endif /* CHE_DBG_STATS */
-
 /* macros to get some fields from opcodes */
 
 /* Get the X from opcodes of type:
@@ -231,18 +223,33 @@ err:
 	return -1;
 }
 
-#if __APPLE__
-typedef struct sysinfo {
-    uint32_t uptime;
-}sysinfo;
-#endif /* __APPLE__ */
+static const che_time_t che_time_tick = { 0, CHE_TICK_TIME_NS };
+
+static inline
+void che_sleep_tick(che_time_t *last_sleep_time)
+{
+	che_time_t next_sleep_time;
+	che_time_add(&next_sleep_time, last_sleep_time, &che_time_tick);
+	che_time_t now;
+	che_time_uptime(&now);
+	if (che_time_cmp(&now, &next_sleep_time) < 0) {
+		che_time_t che_sleep_time;
+		che_time_sub(&che_sleep_time, &next_sleep_time, &now);
+		struct timespec sleep_time =
+			{ 0, che_time_get_ns(&che_sleep_time) };
+		while (nanosleep(&sleep_time, &sleep_time) != 0);
+	} else {
+		che_log("WARNING: Tick lost");
+	}
+	*last_sleep_time = next_sleep_time;
+}
 
 static
 int che_run(che_machine_t *m)
 {
-	che_time_t che_last_uptime;
-	che_time_uptime(&che_last_uptime);
-	//static const che_time_t che_time_tick = { 0, CHE_TICK_TIME_NS };
+	che_time_t last_sleep_time;
+	che_time_uptime(&last_sleep_time);
+
 	for (;;) {
 		int tick_cycles = 0;
 		while (tick_cycles++ < CHE_TICK_CYCLES) {
@@ -252,26 +259,18 @@ int che_run(che_machine_t *m)
 		che_scr_draw_screen(&m->screen);
 
 		#ifdef CHE_DBG_STATS
-		/* TODO: this will only work in linux */
-		static uint32_t last_uptime = 0;
+		static che_time_t last_uptime = { 0, 0 };
 		static uint32_t cycles_per_second = 0;
 		static uint32_t ticks_per_second = 0;
 		cycles_per_second += tick_cycles;
 		ticks_per_second++;
-		struct sysinfo info;
-        #if __APPLE__
-        struct timeval uptime;
-        size_t len = sizeof(uptime);
-        sysctlbyname("kern.boottime",&uptime,&len,NULL,0);
-        info.uptime = uptime.tv_sec;
-        #else
-		sysinfo(&info);
-		#endif /* __APPLE__ */
-		if (last_uptime == 0) {
-			last_uptime = info.uptime;
+		che_time_t now;
+		che_time_uptime(&now);
+		if (che_time_get_s(&last_uptime) == 0) {
+			last_uptime = now;
 		} else {
-			if (last_uptime != info.uptime) {
-				last_uptime = info.uptime;
+			if (che_time_get_s(&last_uptime) != che_time_get_s(&now)) {
+				last_uptime = now;
 				che_log("TICKS: %3d - KIPS: %d",
                                         ticks_per_second,
                                         cycles_per_second / 1000);
@@ -282,22 +281,8 @@ int che_run(che_machine_t *m)
 		#endif /* CHE_DBG_STATS */
 
 		/* Sleep until the next tick */
-		/* TODO: just a quick approach, the sleep time should be
-                         correctly calculated with the uptime */
-		//che_time_t next_uptime = che_last_uptime;
-		//che_time_add(&next_uptime, &che_time_tick);
-		//che_time_t now;
-		//che_time_uptime(&now);
-		//if (che_time_cmp(&now, &next_uptime) < 0) {
-		//	che_time_t che_sleep_time = next_uptime;
-		//	che_time_sub(&che_sleep_time, &now);
-		//	struct timespec sleep_time = { 0, che_sleep_time.ns };
-		//	while (nanosleep(&sleep_time, &sleep_time) != 0);
-		//}
+		che_sleep_tick(&last_sleep_time);
 
-		struct timespec sleep_time = { 0, CHE_TICK_TIME_NS };
-		while (nanosleep(&sleep_time, &sleep_time) != 0);
-		
 		if (m->delay_timer)
 			m->delay_timer--;
 		if (m->sound_timer)
