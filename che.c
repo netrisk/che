@@ -120,17 +120,17 @@ int che_machine_file_load(che_machine_t *m, const char *filename,
 static inline
 int che_cycle(che_machine_t *m)
 {
-	uint16_t instruction = m->mem[m->pc] << 8 | m->mem[m->pc + 1];
-	uint8_t first_nibble = instruction >> 12;
-	uint8_t lowest_byte = instruction & 0xff;
+	uint16_t opcode = m->mem[m->pc] << 8 | m->mem[m->pc + 1];
+	uint8_t first_nibble = opcode >> 12;
+	uint8_t lowest_byte = opcode & 0xff;
 
     #ifdef CHE_DBG_OPCODES
-    che_log("opcode=%04x",instruction);
+    che_log("opcode=%04x",opcode);
 	#endif /* CHE_DBG_OPCODES */
 
 	switch (first_nibble) {
 	case 0:
-		if (instruction == 0x00EE) {
+		if (opcode == 0x00EE) {
 			/* Return from subroutine */
 			if (m->sp == 0) {
 				printf("Empty stack\n");
@@ -144,7 +144,7 @@ int che_cycle(che_machine_t *m)
 		break;
 	case 1:
 		/* 1NNN: Jump to NNN */
-		m->pc = instruction & 0xfff;
+		m->pc = opcode & 0xfff;
 	    #ifdef CHE_DBG_OPCODES
 	    che_log("Jumping to address=%x",m->pc);
 	    #endif /* CHE_DBG_OPCODES */
@@ -156,14 +156,14 @@ int che_cycle(che_machine_t *m)
 			return -1;
 		}
 		m->stack[m->sp++] = m->pc + 2;
-		m->pc = instruction & 0xfff;
+		m->pc = opcode & 0xfff;
 		break;
 	case 3: /* 3XNN skips the next instruction if VX=NN*/
 	    #ifdef CHE_DBG_OPCODES
-        che_log("Skip next instruction if register[%u] == %x",CHE_GET_OPCODE_X(instruction),
-                CHE_GET_OPCODE_NN(instruction));
+        che_log("Skip next instruction if register[%u] == %x",CHE_GET_OPCODE_X(opcode),
+                CHE_GET_OPCODE_NN(opcode));
 	    #endif /* CHE_DBG_OPCODES */
-        if( m->r.v[CHE_GET_OPCODE_X(instruction)] == CHE_GET_OPCODE_NN(instruction) ) {
+        if( m->r.v[CHE_GET_OPCODE_X(opcode)] == CHE_GET_OPCODE_NN(opcode) ) {
             #ifdef CHE_DBG_OPCODES
 	        che_log("Skipping next instruction");
 	        #endif /* CHE_DBG_OPCODES */
@@ -177,10 +177,10 @@ int che_cycle(che_machine_t *m)
         break;
     case 4: /* 4XNN Skip the next instruction if VX != NN */
         #ifdef CHE_DBG_OPCODES
-        che_log("Skip next instruction if register[%u] != %x",CHE_GET_OPCODE_X(instruction),
-                CHE_GET_OPCODE_NN(instruction));
+        che_log("Skip next instruction if register[%u] != %x",CHE_GET_OPCODE_X(opcode),
+                CHE_GET_OPCODE_NN(opcode));
 	    #endif /* CHE_DBG_OPCODES */
-        if( m->r.v[CHE_GET_OPCODE_X(instruction)] != CHE_GET_OPCODE_NN(instruction) ) {
+        if( m->r.v[CHE_GET_OPCODE_X(opcode)] != CHE_GET_OPCODE_NN(opcode) ) {
             #ifdef CHE_DBG_OPCODES
 	        che_log("Skipping next instruction");
 	        #endif /* CHE_DBG_OPCODES */
@@ -193,10 +193,10 @@ int che_cycle(che_machine_t *m)
         }
         break;
     case 6: /* 6XNN Set VX register to NN value */
-        m->r.v[CHE_GET_OPCODE_X(instruction)] = CHE_GET_OPCODE_NN(instruction);
+        m->r.v[CHE_GET_OPCODE_X(opcode)] = CHE_GET_OPCODE_NN(opcode);
         #ifdef CHE_DBG_OPCODES
-        che_log("setting register[%u] to value:%x",CHE_GET_OPCODE_X(instruction),
-                CHE_GET_OPCODE_NN(instruction));
+        che_log("setting register[%u] to value:%x",CHE_GET_OPCODE_X(opcode),
+                CHE_GET_OPCODE_NN(opcode));
 	    #endif /* CHE_DBG_OPCODES */
         m->pc += 2; /* next instruction */
         break;
@@ -204,11 +204,11 @@ int che_cycle(che_machine_t *m)
         break;
 	case 0xf:
 		if (lowest_byte == 0x07) {
-			m->r.v[CHE_GET_OPCODE_X(instruction)] = m->delay_timer;
+			m->r.v[CHE_GET_OPCODE_X(opcode)] = m->delay_timer;
 		} else if (lowest_byte == 0x15) {
-			m->delay_timer = m->r.v[CHE_GET_OPCODE_X(instruction)];
+			m->delay_timer = m->r.v[CHE_GET_OPCODE_X(opcode)];
 		} else if (lowest_byte == 0x18) {
-			m->sound_timer = m->r.v[CHE_GET_OPCODE_X(instruction)];
+			m->sound_timer = m->r.v[CHE_GET_OPCODE_X(opcode)];
 		} else {
 			goto err;
 		}
@@ -219,7 +219,7 @@ int che_cycle(che_machine_t *m)
 	}
 	return 0;
 err:
-	printf("Unrecognized instruction %04X at 0x%03X\n", instruction, m->pc);
+	printf("Unrecognized opcode %04X at 0x%03X\n", opcode, m->pc);
 	return -1;
 }
 
