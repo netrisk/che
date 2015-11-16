@@ -206,7 +206,18 @@ int che_cycle(che_machine_t *m)
 		break;
 	case 8:
 		break;
+	case 0xd:
+		/* Draw sprite */
+		/* TODO: draw_sprite call is untested here */
+		m->r.v[0xf] = che_scr_draw_sprite(&m->screen,
+		                                  m->mem + m->r.i,
+		                                  CHE_GET_BYTE(opcode, 0),
+		                                  m->r.v[CHE_GET_BYTE(opcode, 3)],
+		                                  m->r.v[CHE_GET_BYTE(opcode, 2)]);
+		m->pc += 2;
+		break;
 	case 0xf:
+		/* Deal with timers */
 		if (lowest_byte == 0x07) {
 			m->r.v[CHE_GET_OPCODE_X(opcode)] = m->delay_timer;
 		} else if (lowest_byte == 0x15) {

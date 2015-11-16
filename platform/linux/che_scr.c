@@ -17,6 +17,7 @@ int che_scr_init(che_scr_t *s, int width, int height)
 }
 
 /* TODO: Maybe this function can be in general code, not platform code */
+/* TODO: Test collision code */
 bool che_scr_draw_sprite(che_scr_t *s, uint8_t *buf, int h, int x, int y)
 {
 	bool collision = false;
