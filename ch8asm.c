@@ -108,6 +108,29 @@ static void ch8asm_dump_labels(ch8asm_t* ch8asm)
 }
 #endif /* CH8ASM_DBG_LABELS */
 
+/**
+ * @brief Parse a number and if it finish with an "h" then returns base 16
+ * else returns base 10
+ *
+ * @param number string with the number and a suffix. "h"(hexadecimal) or nothing (decimal)
+ *
+ * @return base 16 or base 10
+ * @remarks This function remove the suffix if it exists
+ */
+static uint8_t ch8asm_parse_number_base(char* number)
+{
+    char* suffix = strstr(number,"h");
+    uint8_t base;
+
+    if( suffix != NULL ) {
+        base = 16;
+        *suffix = '\0';
+    } else {
+        base = 10;
+    }
+    return base;
+}
+
 static int ch8asm_parse_parameters(const char* instruction,char* parameters,
                                    instruction_params_t* parsed_params)
 {
@@ -136,14 +159,9 @@ static int ch8asm_parse_parameters(const char* instruction,char* parameters,
                 parsed_params->rec.value);
         #endif /* CH8ASM_DBG_INSTRUCTIONS_PARSE*/
     } else if( 0 == strcmp(instruction,"JMP") ) {
-        char* suffix = strstr(parameters,"h");
         uint8_t base;
-        if( suffix != NULL ) {
-            base = 16;
-            *suffix = '\0';
-        } else {
-            base = 10;
-        }
+
+        base = ch8asm_parse_number_base(parameters);
         parsed_params->address = strtoul(parameters,NULL,base);
         #ifdef CH8ASM_DBG_INSTRUCTIONS_PARSE
         che_log("JMP command.address=%u",parsed_params->address);
