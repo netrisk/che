@@ -34,8 +34,12 @@ typedef struct label_node_t
 
 typedef struct record_instruction_params_t 
 {
-    uint8_t record;
-    uint8_t value;
+    uint8_t record; /* target record */
+    uint8_t type; /* 0 is value to record, 1 is source record to record */
+    union {
+        uint8_t value;
+        uint8_t source_record;
+    };
 }record_instruction_params_t;
 
 typedef struct instruction_params_t
@@ -131,6 +135,19 @@ static uint8_t ch8asm_parse_number_base(char* number)
     return base;
 }
 
+static uint8_t ch8asm_parse_record_id(char record_id)
+{
+    if( record_id >= '0' && record_id <= '9' ) {
+        return record_id - '0';
+    } else if( record_id >= 'A' && record_id <= 'F' ) {
+        return record_id - 'A';
+    } else if( record_id >= 'a' && record_id <= 'f' ) {
+        return record_id - 'a';
+    }
+    fprintf(stderr,"ERROR:Wrong record at line=%zu\n",ch8asm.lineno);
+    exit(1);
+}
+
 static int ch8asm_parse_parameters(const char* instruction,char* parameters,
                                    instruction_params_t* parsed_params)
 {
@@ -143,19 +160,30 @@ static int ch8asm_parse_parameters(const char* instruction,char* parameters,
     if( 0 == strcmp(instruction,"MOV") ) {
         uint8_t base;
 
-        parsed_params->rec.record = parameters[1]-'0';
+        parsed_params->rec.record = ch8asm_parse_record_id(parameters[1]);
         parameters = strstr(parameters,",");
         parameters++;
-        base = ch8asm_parse_number_base(parameters);
-        parsed_params->rec.value = strtoul(parameters,NULL,base);
-        #ifdef CH8ASM_DBG_INSTRUCTIONS_PARSE
-        che_log("MOV command. Register=%u value=%u",parsed_params->rec.record,
-                parsed_params->rec.value);
-        #endif /* CH8ASM_DBG_INSTRUCTIONS_PARSE */
+        if( 0 /* ch8asm_is_record(parameters)*/ ) {
+            parsed_params->rec.type = 1;
+            parsed_params->rec.source_record = ch8asm_parse_record_id(parameters[1]);
+            #ifdef CH8ASM_DBG_INSTRUCTIONS_PARSE
+            che_log("MOV command. Register=%u <-- Register=%u",
+                    parsed_params->rec.record,
+                    parsed_params->rec.source_record);
+            #endif /* CH8ASM_DBG_INSTRUCTIONS_PARSE */
+        } else {
+            parsed_params->rec.type = 0;
+            base = ch8asm_parse_number_base(parameters);
+            parsed_params->rec.value = strtoul(parameters,NULL,base);
+            #ifdef CH8ASM_DBG_INSTRUCTIONS_PARSE
+            che_log("MOV command. Register=%u value=%u",parsed_params->rec.record,
+                    parsed_params->rec.value);
+            #endif /* CH8ASM_DBG_INSTRUCTIONS_PARSE */
+        }
     } else if( 0 == strcmp(instruction,"SNE") ) {
         uint8_t base;
 
-        parsed_params->rec.record = parameters[1]-'0';
+        parsed_params->rec.record = ch8asm_parse_record_id(parameters[1]);
         parameters = strstr(parameters,",");
         parameters++;
         base = ch8asm_parse_number_base(parameters);
@@ -268,7 +296,7 @@ int main(int argc,char** argv){
    char obj_filename[256];
 
    if( argc < 2 ) {
-        che_log("ERROR:Specifify the assembler file");
+        fprintf(stderr,"ERROR:Specifify the assembler file\n");
         return -1;
    }
    strcpy(obj_filename,argv[1]);
@@ -280,15 +308,15 @@ int main(int argc,char** argv){
    obj_file = fopen(obj_filename,"w+");
    che_log("Output object file will be:%s",obj_filename);
    if( NULL == asm_file ){
-       che_log("Error openeing the file:%s",argv[1]);
+       fprintf(stderr,"Error openeing the file:%s\n",argv[1]);
        return -1;
    }
    if( NULL == obj_file ) {
-       che_log("Error openeing the file:%s",obj_filename);
+       fprintf(stderr,"Error openeing the file:%s\n",obj_filename);
        return -1;
    }
    memset(&ch8asm,0,sizeof(ch8asm));
-   ch8asm.lineno = 1;
+   ch8asm.lineno = 0;
    ch8asm.address = 0x0200;
    
    while( fgets(ch8asm.line,sizeof(ch8asm.line),asm_file) != NULL ){
@@ -297,9 +325,10 @@ int main(int argc,char** argv){
        che_log("line %zu=%s",ch8asm.lineno,ch8asm.line);
        #endif /* CH8ASM_DBG_LINE_READ */
        
+       ch8asm.lineno++;
        res = ch8asm_process_line(&ch8asm);
        if( -1 == res ) {
-           che_log("Error processing line %zu",ch8asm.lineno);
+           fprintf(stderr,"Error processing line %zu\n",ch8asm.lineno);
            return -1;
        }
        if( 1 == res ) { /* empty line */
@@ -307,9 +336,8 @@ int main(int argc,char** argv){
        }
        res = ch8asm_translate(&ch8asm,obj_file);
        if( 0 != res ) {
-           che_log("Error %d while translating",res);
+           fprintf(stderr,"Error %d while translating\n",res);
        }
-       ch8asm.lineno++;
        ch8asm.address+=2;
    }
    fclose(asm_file);

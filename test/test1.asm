@@ -1,4 +1,4 @@
-# First example of assembler
+#); First example of assembler
 START: MOV V0,0
 #Next line will be skipped
 SNE V0,0

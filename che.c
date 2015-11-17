@@ -34,6 +34,11 @@
  * i.e 6XNN -> Extract the value of X
  */
 #define CHE_GET_OPCODE_X(_opcode) ((_opcode >> 8) & 0xf)
+/* Get the Y from opcodes of type:
+ * ?X??
+ * i.e 8XY0 -> Extract the value of Y
+ */
+#define CHE_GET_OPCODE_Y(_opcode) ((_opcode >> 4) & 0xf)
 
 /* Get the NN from opcodes that use it.
  * ie. 6XNN
@@ -41,6 +46,8 @@
 #define CHE_GET_OPCODE_NN(_opcode) (uint8_t)(_opcode & 0x00FF)
 
 #define CHE_GET_NIBBLE(_opcode, _n) ((_opcode >> (_n << 2)) & 0xf)
+
+#define CHE_VF(_regs) _regs.v[15]
 
 typedef struct che_regs_t
 {
@@ -204,7 +211,78 @@ int che_cycle(che_machine_t *m)
 		#endif /* CHE_DBG_OPCODES */
 		m->pc += 2; /* next instruction */
 		break;
-	case 8:
+	case 8: 
+	    switch(CHE_GET_NIBBLE(opcode,0))
+        {
+            case 0: /* 8XY0 sets Vx to Vy */
+                 m->r.v[CHE_GET_OPCODE_X(opcode)] = m->r.v[CHE_GET_OPCODE_Y(opcode)];
+                break;
+            case 1: /* 8xy1 sets Vx to Vx OR Vy */
+                 m->r.v[CHE_GET_OPCODE_X(opcode)] |= m->r.v[CHE_GET_OPCODE_Y(opcode)];
+                break;
+            case 2: /* 8xy2 Set Vx to Vx AND Vy */
+                 m->r.v[CHE_GET_OPCODE_X(opcode)] &= m->r.v[CHE_GET_OPCODE_Y(opcode)];
+                break;
+            case 3: /* XOR */
+                 m->r.v[CHE_GET_OPCODE_X(opcode)] ^= m->r.v[CHE_GET_OPCODE_Y(opcode)];
+                break;
+            case 4: { /* 8xy4 Adds Vy To Vx.Vf to 1 when there's a carry 
+                         and 0 when not.*/ 
+                uint8_t vy = m->r.v[CHE_GET_OPCODE_Y(opcode)];
+                uint16_t vx = m->r.v[CHE_GET_OPCODE_X(opcode)];
+
+                    vx+=vy;
+                    if( vx > 0xff ) {
+                        CHE_VF(m->r) = 1; /* carry present */
+                    }
+                    m->r.v[CHE_GET_OPCODE_X(opcode)] = (uint8_t)(vx & 0x00FF);
+                }
+                break;
+            case 5: { /* 8xy5 Vy is substracted from vx. Vf set to 0 when 
+                       borrow, and 1 when not. */
+                    uint8_t vy = m->r.v[CHE_GET_OPCODE_Y(opcode)];
+                    int16_t vx = m->r.v[CHE_GET_OPCODE_X(opcode)];
+
+                    vx -= vy; /* ¿should I leave to zero of to absolute
+                                 plus vf flag */
+                    if( vx < 0 ) {
+                        CHE_VF(m->r) = 0;
+                        vx = -vx; /* remove the sign */
+                    } else {
+                        CHE_VF(m->r) = 1;
+                    }
+                    m->r.v[CHE_GET_OPCODE_X(opcode)] = (uint8_t)(vx & 0x00FF);
+                }
+                break;
+            case 6: /* 8xy6 shifts VX right by one.
+                       Vf is set to the value of the lsb of vx before the 
+                       shift */
+                    CHE_VF(m->r) = m->r.v[CHE_GET_OPCODE_X(opcode)] & 0x01;
+                    m->r.v[CHE_GET_OPCODE_X(opcode)] >>= 1;
+                break;
+            case 7: {/* 8xy7 sets vx to vy minus vx. Vf set to 0 when there's 
+                      a borrow and 1 when there isn't */
+                    uint8_t vy = m->r.v[CHE_GET_OPCODE_Y(opcode)];
+                    uint8_t vx = m->r.v[CHE_GET_OPCODE_X(opcode)];
+                    int16_t res = vy - vx;
+
+                    if( res > 0 ) {
+                        CHE_VF(m->r) = 1;
+                    } else {
+                        CHE_VF(m->r) = 0;
+                        res = -res; /* discard the sign */
+                    }
+                    m->r.v[CHE_GET_OPCODE_X(opcode)] = (uint8_t)(res & 0x00FF);
+                    }
+                break;
+            case 8: /* 8xye shifts vx left by one.VF is set to the value of the 
+                       msb of vx before the shift */ 
+                CHE_VF(m->r) = m->r.v[CHE_GET_OPCODE_X(opcode)] & 0x80;
+                m->r.v[CHE_GET_OPCODE_X(opcode)] <<= 1;
+                break;
+            default:
+                goto err;
+            }
 		break;
 	case 0xd:
 		/* DXYN: Draw sprite located at I of height N at X, Y */
