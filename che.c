@@ -40,7 +40,7 @@
  */
 #define CHE_GET_OPCODE_NN(_opcode) (uint8_t)(_opcode & 0x00FF)
 
-#define CHE_GET_BYTE(_opcode, _n) ((_opcode >> (_n << 3)) & 0xf)
+#define CHE_GET_NIBBLE(_opcode, _n) ((_opcode >> (_n << 2)) & 0xf)
 
 typedef struct che_regs_t
 {
@@ -207,13 +207,13 @@ int che_cycle(che_machine_t *m)
 	case 8:
 		break;
 	case 0xd:
-		/* Draw sprite */
+		/* DXYN: Draw sprite located at I of height N at X, Y */
 		/* TODO: draw_sprite call is untested here */
 		m->r.v[0xf] = che_scr_draw_sprite(&m->screen,
 		                                  m->mem + m->r.i,
-		                                  CHE_GET_BYTE(opcode, 0),
-		                                  m->r.v[CHE_GET_BYTE(opcode, 3)],
-		                                  m->r.v[CHE_GET_BYTE(opcode, 2)]);
+		                                  CHE_GET_NIBBLE(opcode, 0),
+		                                  m->r.v[CHE_GET_NIBBLE(opcode, 2)],
+		                                  m->r.v[CHE_GET_NIBBLE(opcode, 1)]);
 		m->pc += 2;
 		break;
 	case 0xf:
