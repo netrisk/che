@@ -49,15 +49,18 @@ bool che_scr_draw_sprite(che_scr_t *s, uint8_t *buf, int h, int x, int y)
 		}
 		s->data[pos] = xor_byte;
 		/* Righmost byte bits */
-		if (rsh && x < s->w - 8) {
+		if (rsh) {
+			pos = pos + 1;
+			if (x >= s->w - 8)
+				pos -= s->w >> 3;
 			int lsh = 8 - rsh;
 			spr_byte = (buf[i] << lsh);
-			xor_byte = s->data[pos + 1] ^ spr_byte;
+			xor_byte = s->data[pos] ^ spr_byte;
 			if (!collision) {
-				uint8_t or_byte = s->data[pos + 1] | spr_byte;
+				uint8_t or_byte = s->data[pos] | spr_byte;
 				collision = or_byte != xor_byte;
 			}
-			s->data[pos + 1] = xor_byte;
+			s->data[pos] = xor_byte;
 		}
 	}
 
