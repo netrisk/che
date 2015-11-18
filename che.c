@@ -45,9 +45,15 @@
  */
 #define CHE_GET_OPCODE_NN(_opcode) (uint8_t)(_opcode & 0x00FF)
 
+#define CHE_GET_OPCODE_NNN(_opcode) (uint16_t)(_opcode & 0x0FFF)
+
 #define CHE_GET_NIBBLE(_opcode, _n) ((_opcode >> (_n << 2)) & 0xf)
 
 #define CHE_VF(_regs) _regs.v[15]
+#define CHE_V0(_regs) _regs.v[0]
+
+#define CHE_NEXT_INSTRUCTION(_pc) _pc+=2
+#define CHE_SKIP_NEXT_INSTRUCTION(_pc) _pc+=4
 
 typedef struct che_regs_t
 {
@@ -131,7 +137,6 @@ int che_cycle(che_machine_t *m)
 {
 	uint16_t opcode = m->mem[m->pc] << 8 | m->mem[m->pc + 1];
 	uint8_t first_nibble = opcode >> 12;
-	uint8_t lowest_byte = opcode & 0xff;
 
 	#ifdef CHE_DBG_OPCODES
 	che_log("opcode=%04x",opcode);
@@ -177,12 +182,12 @@ int che_cycle(che_machine_t *m)
 			#ifdef CHE_DBG_OPCODES
 			che_log("Skipping next instruction");
 			#endif /* CHE_DBG_OPCODES */
-			m->pc += 4; /* skip the next instruction */   
+			CHE_SKIP_NEXT_INSTRUCTION(m->pc);
 		} else {
 			#ifdef CHE_DBG_OPCODES
 			che_log("Not skipping next instruction");
 			#endif /* CHE_DBG_OPCODES */
-			m->pc += 2; /* go for next instruction */
+			CHE_NEXT_INSTRUCTION(m->pc);
 		}
 		break;
 	case 4: /* 4XNN Skip the next instruction if VX != NN */
@@ -195,22 +200,33 @@ int che_cycle(che_machine_t *m)
 			#ifdef CHE_DBG_OPCODES
 				che_log("Skipping next instruction");
 				#endif /* CHE_DBG_OPCODES */
-			m->pc += 4;
+			CHE_SKIP_NEXT_INSTRUCTION(m->pc);
 		} else {
 			#ifdef CHE_DBG_OPCODES
 			che_log("Not skipping next instruction");
 			#endif /* CHE_DBG_OPCODES */
-			m->pc += 2;
+			CHE_NEXT_INSTRUCTION(m->pc);
 		}
 		break;
+	case 5: /* 5XY0	Skips the next instruction if VX equals VY. */
+        if( m->r.v[CHE_GET_OPCODE_X(opcode)] == m->r.v[CHE_GET_OPCODE_Y(opcode)] ) {
+			CHE_SKIP_NEXT_INSTRUCTION(m->pc);
+        } else {
+			CHE_NEXT_INSTRUCTION(m->pc);
+        }
+	    break;
 	case 6: /* 6XNN Set VX register to NN value */
 		m->r.v[CHE_GET_OPCODE_X(opcode)] = CHE_GET_OPCODE_NN(opcode);
 		#ifdef CHE_DBG_OPCODES
 		che_log("setting register[%u] to value:%x",CHE_GET_OPCODE_X(opcode),
 		        CHE_GET_OPCODE_NN(opcode));
 		#endif /* CHE_DBG_OPCODES */
-		m->pc += 2; /* next instruction */
+		CHE_NEXT_INSTRUCTION(m->pc);
 		break;
+	case 7:/* 7XNN Adds NN to VX */
+        m->r.v[CHE_GET_OPCODE_X(opcode)] += CHE_GET_OPCODE_NN(opcode);
+		CHE_NEXT_INSTRUCTION(m->pc);
+	    break;
 	case 8: 
 	    switch(CHE_GET_NIBBLE(opcode,0))
         {
@@ -283,7 +299,22 @@ int che_cycle(che_machine_t *m)
             default:
                 goto err;
             }
+		CHE_NEXT_INSTRUCTION(m->pc);
 		break;
+	case 9: /* 9XY0	Skips the next instruction if VX doesn't equal VY. */
+        if( m->r.v[CHE_GET_OPCODE_X(opcode)] != m->r.v[CHE_GET_OPCODE_Y(opcode)] ) {
+			CHE_SKIP_NEXT_INSTRUCTION(m->pc);
+        } else {
+			CHE_NEXT_INSTRUCTION(m->pc);
+        }
+	    break;
+	case 0xa: /* ANNN	Sets I to the address NNN */
+        m->r.i = CHE_GET_OPCODE_NNN(opcode);
+		CHE_NEXT_INSTRUCTION(m->pc);
+	    break;
+	case 0xb: /* BNNN	Jumps to the address NNN plus V0. */
+	    m->pc = CHE_V0(m->r) + CHE_GET_OPCODE_NNN(opcode);
+	    break;
 	case 0xd:
 		/* DXYN: Draw sprite located at I of height N at X, Y */
 		/* TODO: draw_sprite call is untested here */
@@ -292,20 +323,26 @@ int che_cycle(che_machine_t *m)
 		                                  CHE_GET_NIBBLE(opcode, 0),
 		                                  m->r.v[CHE_GET_NIBBLE(opcode, 2)],
 		                                  m->r.v[CHE_GET_NIBBLE(opcode, 1)]);
-		m->pc += 2;
+		CHE_NEXT_INSTRUCTION(m->pc);
 		break;
-	case 0xf:
-		/* Deal with timers */
-		if (lowest_byte == 0x07) {
-			m->r.v[CHE_GET_OPCODE_X(opcode)] = m->delay_timer;
-		} else if (lowest_byte == 0x15) {
-			m->delay_timer = m->r.v[CHE_GET_OPCODE_X(opcode)];
-		} else if (lowest_byte == 0x18) {
-			m->sound_timer = m->r.v[CHE_GET_OPCODE_X(opcode)];
-		} else {
-			goto err;
-		}
-		m->pc += 2;
+	case 0xf: {
+            uint8_t lowest_byte = opcode & 0xff;
+            /* Deal with timers */
+            if (lowest_byte == 0x07) {
+                m->r.v[CHE_GET_OPCODE_X(opcode)] = m->delay_timer;
+            } else if (lowest_byte == 0x15) {
+                m->delay_timer = m->r.v[CHE_GET_OPCODE_X(opcode)];
+            } else if (lowest_byte == 0x18) {
+                m->sound_timer = m->r.v[CHE_GET_OPCODE_X(opcode)];
+            } else if( lowest_byte == 0x1e) { /* Adds VX to I.[3]
+               VF is set to 1 when range overflow (I+VX>0xFFF), and 0 when there isn't.
+               This is undocumented feature of the CHIP-8 and used by Spacefight 2091! game*/
+                
+            } else {
+                goto err;
+            }
+            CHE_NEXT_INSTRUCTION(m->pc);
+        }
 		break;
 	default:
 		goto err;
