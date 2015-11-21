@@ -8,17 +8,6 @@
 
 /* macros to get some fields from opcodes */
 
-/* Get the X from opcodes of type:
- * ?X??
- * i.e 6XNN -> Extract the value of X
- */
-#define CHE_GET_OPCODE_X(_opcode) ((_opcode >> 8) & 0xf)
-/* Get the Y from opcodes of type:
- * ?X??
- * i.e 8XY0 -> Extract the value of Y
- */
-#define CHE_GET_OPCODE_Y(_opcode) ((_opcode >> 4) & 0xf)
-
 /* Get the NN from opcodes that use it.
  * ie. 6XNN
  */
@@ -26,7 +15,21 @@
 
 #define CHE_GET_OPCODE_NNN(_opcode) (uint16_t)(_opcode & 0x0FFF)
 
-#define CHE_GET_NIBBLE(_opcode, _n) ((_opcode >> (_n << 2)) & 0xf)
+#define CHE_GET_NIBBLE_0(_opcode) (_opcode & 0xf)
+#define CHE_GET_NIBBLE_1(_opcode) ((_opcode >> 4) & 0xf)
+#define CHE_GET_NIBBLE_2(_opcode) ((_opcode >> 8) & 0xf)
+#define CHE_GET_NIBBLE_3(_opcode) ((_opcode >> 12) & 0xf)
+
+/* Get the X from opcodes of type:
+ * ?X??
+ * i.e 6XNN -> Extract the value of X
+ */
+#define CHE_GET_OPCODE_X(_opcode) CHE_GET_NIBBLE_2(_opcode)
+/* Get the Y from opcodes of type:
+ * ?X??
+ * i.e 8XY0 -> Extract the value of Y
+ */
+#define CHE_GET_OPCODE_Y(_opcode) CHE_GET_NIBBLE_1(_opcode)
 
 #define CHE_VF(_regs) _regs.v[15]
 #define CHE_V0(_regs) _regs.v[0]
@@ -37,13 +40,12 @@
 int che_cycle(che_machine_t *m)
 {
 	uint16_t opcode = m->mem[m->pc] << 8 | m->mem[m->pc + 1];
-	uint8_t first_nibble = opcode >> 12;
 
 	#ifdef CHE_DBG_OPCODES
 	che_log("opcode=%04x",opcode);
 	#endif /* CHE_DBG_OPCODES */
 
-	switch (first_nibble) {
+	switch (CHE_GET_NIBBLE_3(opcode)) {
 	case 0:
 		if (opcode == 0x00EE) {
 			/* Return from subroutine */
@@ -129,7 +131,7 @@ int che_cycle(che_machine_t *m)
 		CHE_NEXT_INSTRUCTION(m->pc);
 		break;
 	case 8: 
-		switch(CHE_GET_NIBBLE(opcode,0))
+		switch (CHE_GET_NIBBLE_0(opcode))
 		{
 		case 0: /* 8XY0 sets Vx to Vy */
 			m->r.v[CHE_GET_OPCODE_X(opcode)] = m->r.v[CHE_GET_OPCODE_Y(opcode)];
@@ -218,9 +220,9 @@ int che_cycle(che_machine_t *m)
 		/* TODO: draw_sprite call is untested here */
 		m->r.v[0xf] = che_scr_draw_sprite(&m->screen,
 		                                  m->mem + m->r.i,
-		                                  CHE_GET_NIBBLE(opcode, 0),
-		                                  m->r.v[CHE_GET_NIBBLE(opcode, 2)],
-		                                  m->r.v[CHE_GET_NIBBLE(opcode, 1)]);
+		                                  CHE_GET_NIBBLE_0(opcode),
+		                                  m->r.v[CHE_GET_NIBBLE_2(opcode)],
+		                                  m->r.v[CHE_GET_NIBBLE_1(opcode)]);
 		CHE_NEXT_INSTRUCTION(m->pc);
 		break;
 	case 0xf: {
