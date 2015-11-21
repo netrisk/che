@@ -3,7 +3,7 @@
 #include <string.h>
 #include <stdio.h>
 
-#define CHE_SCR_TEST
+/* #define CHE_SCR_TEST */
 
 int che_scr_init(che_scr_t *s, int width, int height)
 {
