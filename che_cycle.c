@@ -270,10 +270,9 @@ static int che_cycle_function_c(che_machine_t *m, uint16_t opcode)
 static int che_cycle_function_d(che_machine_t *m, uint16_t opcode)
 {
 	/* DXYN: Draw sprite located at I of height N at X, Y */
-	/* TODO: draw_sprite call is untested here */
 	int height = CHE_GET_NIBBLE_0(opcode);
-	int x = CHE_GET_NIBBLE_2(opcode);
-	int y = CHE_GET_NIBBLE_1(opcode);
+	int x = m->r.v[CHE_GET_NIBBLE_2(opcode)];
+	int y = m->r.v[CHE_GET_NIBBLE_1(opcode)];
 	m->r.v[0xf] = che_scr_draw_sprite(&m->screen,
 	                                  m->mem + m->r.i,
 	                                  height, x, y);
