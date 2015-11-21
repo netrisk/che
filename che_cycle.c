@@ -58,8 +58,10 @@ static int che_cycle_function_0(che_machine_t *m, uint16_t opcode)
 	} else if (opcode == 0x00E0) {
 		/* Clear the screen */
 		che_scr_clear(&m->screen);
+		CHE_NEXT_INSTRUCTION(m->pc);
 	} else {
 		che_log("WARNING: ignoring RCA 1802 call to 0x%03X", opcode);
+		CHE_NEXT_INSTRUCTION(m->pc);
 	}
 	return 0;
 }
@@ -267,8 +269,10 @@ static int che_cycle_function_c(che_machine_t *m, uint16_t opcode)
 	   random number and NN */
 	m->r.v[CHE_GET_OPCODE_X(opcode)] = che_rand(&m->rand) &
 	                                   CHE_GET_OPCODE_NN(opcode);
+	CHE_NEXT_INSTRUCTION(m->pc);
 	return 0;
 }
+
 static int che_cycle_function_d(che_machine_t *m, uint16_t opcode)
 {
 	/* DXYN: Draw sprite located at I of height N at X, Y */
