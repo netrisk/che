@@ -349,8 +349,13 @@ static int che_cycle_function_f(che_machine_t *m, uint16_t opcode)
 		}
 	} else if (lowest_byte == 0x29) {
 		/* TODO: Sets I to the location of the sprite for the character in VX */
-		che_log("ERROR: Character sprite still not implemented");
-		return -1;
+		int value = m->r.v[CHE_GET_OPCODE_X(opcode)];
+		if (value > 0xf) {
+			che_log("ERROR: Character 0x%02X not in table", value);
+			return -1;
+		}
+		m->r.i = CHE_MACHINE_CHAR_TABLE_POS +
+		         sizeof(che_machine_char_t) * value;
 	} else if (lowest_byte == 0x33) {
 		/* Stores the Binary-coded decimal representation of VX */
 		int value = m->r.v[CHE_GET_OPCODE_X(opcode)];
