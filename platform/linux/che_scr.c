@@ -114,7 +114,7 @@ void che_scr_draw_screen(che_scr_t *s)
 			if ((s->data[y * (s->w >> 3) + (x >> 3)] >> (7 - (x & 7))) & 1)
 				ch = 'O';
 			else
-				ch = '.';
+				ch = ' ';
 			line[pos++] = ch;
 		}
 		line[pos] = 0;
