@@ -1,6 +1,7 @@
 #ifndef CHE_MACHINE_H
 #define CHE_MACHINE_H
 
+#include <che_rand.h>
 #include <che_scr.h>
 
 #define CHE_MACHINE_STACK_LEVELS   32
@@ -38,6 +39,9 @@ typedef struct che_machine_t
 
 	/* Display */
 	che_scr_t  screen;
+
+	/* Random number generator */
+	che_rand_t rand;
 } che_machine_t;
 
 int che_machine_init(che_machine_t *m);

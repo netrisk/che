@@ -3,6 +3,7 @@
 #include <che_log.h>
 #include <che_time.h>
 #include <che_cycle.h>
+#include <che_rand.h>
 
 /* Temporization */
 #define CHE_TICK_HZ       60
@@ -42,6 +43,7 @@ int che_machine_init(che_machine_t *m)
 	m->keymask = 0;
 	m->delay_timer = 0;
 	m->sound_timer = 0;
+	che_rand_init(&m->rand, 0);
 	memcpy(m->mem + CHE_MACHINE_CHAR_TABLE_POS, che_machine_char_table,
                sizeof(che_machine_char_table));
 	return che_scr_init(&m->screen, 64, 32);

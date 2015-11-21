@@ -1,5 +1,6 @@
 #include <che_cycle.h>
 #include <che_log.h>
+#include <che_rand.h>
 
 /* To check if a key is pressed */
 #define CHE_KEY_PRESSED(_keymask, _key) ((_keymask >> _key) & 1)
@@ -262,10 +263,11 @@ static int che_cycle_function_b(che_machine_t *m, uint16_t opcode)
 
 static int che_cycle_function_c(che_machine_t *m, uint16_t opcode)
 {
-	/* TODO: CXNN Sets VX to the result of a bitwise and operation on a
-	         random number and NN. */
-	che_log("ERROR: Random numbers still not implemented");
-	return -1;
+	/* CXNN Sets VX to the result of a bitwise and operation on a
+	   random number and NN */
+	m->r.v[CHE_GET_OPCODE_X(opcode)] = che_rand(&m->rand) &
+	                                   CHE_GET_OPCODE_NN(opcode);
+	return 0;
 }
 static int che_cycle_function_d(che_machine_t *m, uint16_t opcode)
 {
