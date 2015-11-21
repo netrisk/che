@@ -54,9 +54,11 @@ static int che_cycle_function_0(che_machine_t *m, uint16_t opcode)
 		}
 		m->sp--;
 		m->pc = m->stack[m->sp];
+	} else if (opcode == 0x00E0) {
+		/* Clear the screen */
+		che_scr_clear(&m->screen);
 	} else {
-		che_cycle_unrecognized(m, opcode);
-		return -1;
+		che_log("WARNING: ignoring RCA 1802 call to 0x%03X", opcode);
 	}
 	return 0;
 }
@@ -152,6 +154,7 @@ static int che_cycle_function_6(che_machine_t *m, uint16_t opcode)
 static int che_cycle_function_7(che_machine_t *m, uint16_t opcode)
 {
 	/* 7XNN Adds NN to VX */
+	/* TODO: borrow? */
 	m->r.v[CHE_GET_OPCODE_X(opcode)] += CHE_GET_OPCODE_NN(opcode);
 	CHE_NEXT_INSTRUCTION(m->pc);
 	return 0;
@@ -219,8 +222,8 @@ static int che_cycle_function_8(che_machine_t *m, uint16_t opcode)
 		m->r.v[CHE_GET_OPCODE_X(opcode)] = (uint8_t)(res & 0x00FF);
 		}
 		break;
-	case 8: /* 8xye shifts vx left by one.VF is set to the value of the 
-	           msb of vx before the shift */ 
+	case 0xe: /* 8xye shifts vx left by one.VF is set to the value of the 
+	             msb of vx before the shift */ 
 		CHE_VF(m->r) = m->r.v[CHE_GET_OPCODE_X(opcode)] & 0x80;
 		m->r.v[CHE_GET_OPCODE_X(opcode)] <<= 1;
 		break;
@@ -259,7 +262,9 @@ static int che_cycle_function_b(che_machine_t *m, uint16_t opcode)
 
 static int che_cycle_function_c(che_machine_t *m, uint16_t opcode)
 {
-	che_cycle_unrecognized(m, opcode);
+	/* TODO: CXNN Sets VX to the result of a bitwise and operation on a
+	         random number and NN. */
+	che_log("ERROR: Random numbers still not implemented");
 	return -1;
 }
 static int che_cycle_function_d(che_machine_t *m, uint16_t opcode)
@@ -278,8 +283,33 @@ static int che_cycle_function_d(che_machine_t *m, uint16_t opcode)
 
 static int che_cycle_function_e(che_machine_t *m, uint16_t opcode)
 {
-	che_cycle_unrecognized(m, opcode);
-	return -1;
+	/* EX9E and EXA1: Skip instructions when keys are pressed or not */
+	uint8_t lowest_byte = opcode & 0xff;
+	bool skip;
+
+	/* Get key */
+	int key = m->r.v[CHE_GET_OPCODE_X(opcode)];
+	if (key > 0xf) {
+		che_log("ERROR: Non existing key %d", key);
+		return -1;
+	}
+	/* Check action */
+	if (lowest_byte == 0x9e) {
+		/* Skips the next instruction if the key stored in VX is pressed */
+		skip = CHE_KEY_PRESSED(m->keymask, key);
+	} else if (lowest_byte == 0xa1) {
+		/* Skips the next instruction if the key stored in VX isn't pressed */
+		skip = !CHE_KEY_PRESSED(m->keymask, key);
+	} else {
+		che_cycle_unrecognized(m, opcode);
+		return -1;
+	}
+	/* Operate */
+	if (skip)
+		CHE_SKIP_NEXT_INSTRUCTION(m->pc);
+	else
+		CHE_NEXT_INSTRUCTION(m->pc);
+	return 0;
 }
 
 static int che_cycle_function_f(che_machine_t *m, uint16_t opcode)
@@ -288,6 +318,20 @@ static int che_cycle_function_f(che_machine_t *m, uint16_t opcode)
 	/* Deal with timers */
 	if (lowest_byte == 0x07) {
 		m->r.v[CHE_GET_OPCODE_X(opcode)] = m->delay_timer;
+	} else if (lowest_byte == 0x0a) {
+		/* A key press is awaited, and then stored in VX */
+		/* TODO: actually this doesn't wait for a keypress, just avoids
+		         going to next instruction if a key isn't pressed,
+		         which consumes more CPU than doing it correctly */
+		if (!m->keymask)
+			return 0;
+		int i;
+		for (i = 0; i < 16; i++) {
+			if (CHE_KEY_PRESSED(m->keymask, i)) {
+				m->r.v[CHE_GET_OPCODE_X(opcode)] = i;
+				break;
+			}
+		}
 	} else if (lowest_byte == 0x15) {
 		m->delay_timer = m->r.v[CHE_GET_OPCODE_X(opcode)];
 	} else if (lowest_byte == 0x18) {
@@ -297,9 +341,39 @@ static int che_cycle_function_f(che_machine_t *m, uint16_t opcode)
 		   (I+VX>0xFFF), and 0 when there isn't.
 		   This is undocumented feature of the CHIP-8 and used by
 		   Spacefight 2091! game*/
-		/* TODO: do something */
+		m->r.i += m->r.v[CHE_GET_OPCODE_X(opcode)];
+		if (m->r.i > 0xfff) {
+			m->r.i &= 0xfff;
+			CHE_VF(m->r) = 1;
+		} else {
+			CHE_VF(m->r) = 0;
+		}
+	} else if (lowest_byte == 0x29) {
+		/* TODO: Sets I to the location of the sprite for the character in VX */
+		che_log("ERROR: Character sprite still not implemented");
+		return -1;
+	} else if (lowest_byte == 0x33) {
+		/* Stores the Binary-coded decimal representation of VX */
+		int value = m->r.v[CHE_GET_OPCODE_X(opcode)];
+		uint8_t *ptr = m->mem + m->r.i;
+		*ptr++ = value / 100;
+		*ptr++ = (value % 100) / 10;
+		*ptr++ = value % 10;
+	} else if (lowest_byte == 0x55) {
+		/* Stores V0 to VX in memory starting at address I */
+		uint8_t *ptr = m->mem + m->r.i;
+		int final_v = CHE_GET_OPCODE_X(opcode);
+		int i;
+		for (i = 0; i <= final_v; i++)
+			*ptr++ = m->r.v[i];
+	} else if (lowest_byte == 0x65) {
+		/* Stores V0 to VX in memory starting at address I */
+		uint8_t *ptr = m->mem + m->r.i;
+		int final_v = CHE_GET_OPCODE_X(opcode);
+		int i;
+		for (i = 0; i <= final_v; i++)
+			m->r.v[i] = *ptr++;
 	} else {
-		/* TODO: complete */
 		che_cycle_unrecognized(m, opcode);
 		return -1;
 	}
