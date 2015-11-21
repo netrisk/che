@@ -10,6 +10,8 @@ typedef struct che_scr_t
 	bool     changed;
 	int      w;
 	int      h;
+	bool     x_wrap;
+	bool     y_wrap;
 } che_scr_t;
 
 #endif /* CHE_SCR_PLATFORM_H */

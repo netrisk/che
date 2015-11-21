@@ -12,6 +12,8 @@ int che_scr_init(che_scr_t *s, int width, int height)
 	s->data = malloc((width >> 3) * height);
 	s->w = width;
 	s->h = height;
+	s->x_wrap = true;
+	s->y_wrap = true;
 	che_scr_clear(s);
 	return 0;
 }
@@ -25,10 +27,16 @@ bool che_scr_draw_sprite(che_scr_t *s, uint8_t *buf, int h, int x, int y)
 	int i;
 
 	/* Wrap coordinates around the screen */
-	if (x >= s->w)
+	if (x >= s->w) {
+		if (!s->x_wrap)
+			return false;
 		x = x % s->w;
-	if (y >= s->h)
+	}
+	if (y >= s->h) {
+		if (!s->y_wrap)
+			return false;
 		y = y % s->h;
+	}
 
 	/* Cut the sprite if necessary */
 	if (y + h < s->h)
@@ -36,6 +44,8 @@ bool che_scr_draw_sprite(che_scr_t *s, uint8_t *buf, int h, int x, int y)
 	else
 		h_visible = s->h - y;
 
+	/* TODO: if y wrapping is enabled maybe we should draw the bottom
+	         of the sprite at the top of the screen */
 	/* Draw content in memory */
 	for (i = 0; i < h_visible; i++) {
 		/* Leftmost byte bits */
@@ -51,8 +61,11 @@ bool che_scr_draw_sprite(che_scr_t *s, uint8_t *buf, int h, int x, int y)
 		/* Righmost byte bits */
 		if (rsh) {
 			pos = pos + 1;
-			if (x >= s->w - 8)
+			if (x >= s->w - 8) {
+				if (!s->x_wrap)
+					goto end;
 				pos -= s->w >> 3;
+			}
 			int lsh = 8 - rsh;
 			spr_byte = (buf[i] << lsh);
 			xor_byte = s->data[pos] ^ spr_byte;
@@ -64,6 +77,7 @@ bool che_scr_draw_sprite(che_scr_t *s, uint8_t *buf, int h, int x, int y)
 		}
 	}
 
+end:
 	s->changed = true;
 	return collision;
 }
