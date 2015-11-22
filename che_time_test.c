@@ -16,7 +16,7 @@ void che_sleep_tick(che_time_t *last_sleep_time)
 		che_time_t che_sleep_time;
 		che_time_sub(&che_sleep_time, &next_sleep_time, &now);
         fprintf(stdout,"sleep --> secs=%d usecs=%llu\n",che_sleep_time.s,
-                che_sleep_time.ns);
+                (unsigned long long)che_sleep_time.ns);
 		che_time_sleep(&che_sleep_time);
 	} else {
 		fprintf(stdout,"WARNING: Tick lost\n");
