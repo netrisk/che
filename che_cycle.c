@@ -354,7 +354,7 @@ static int che_cycle_function_f(che_machine_t *m, uint16_t opcode)
 			CHE_VF(m->r) = 0;
 		}
 	} else if (lowest_byte == 0x29) {
-		/* TODO: Sets I to the location of the sprite for the character in VX */
+		/* Sets I to the location of the sprite for the character in VX */
 		int value = m->r.v[CHE_GET_OPCODE_X(opcode)];
 		if (value > 0xf) {
 			che_log("ERROR: Character 0x%02X not in table", value);
