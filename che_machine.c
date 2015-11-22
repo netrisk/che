@@ -11,7 +11,7 @@
 #define CHE_TICK_CYCLES   (CHE_KIPS * 1000 / CHE_TICK_HZ)
 #define CHE_TICK_TIME_NS  ((1 * 1000 * 1000 * 1000) / CHE_TICK_HZ)
 
-/* #define CHE_MACHINE_DBG_STATS */
+#define CHE_MACHINE_DBG_STATS 
 
 static const che_machine_char_t che_machine_char_table[16] =
 {
