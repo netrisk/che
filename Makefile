@@ -1,18 +1,21 @@
 .PHONY: all
 
-CFLAGS+=-g -Wall -Werror
+CHE_INCLUDES=-I . -I platform/apple -I platform/linux
+CHE_CFLAGS=-DCHE_TIME_APPLE ${CHE_INCLUDES}
+CFLAGS+=-g -Wall -Werror ${CHE_CFLAGS}
+PLATFORM=$(shell uname -s)
+
+ifeq (${PLATFORM},Darwin)
+PLATFORM_SOURCE=./platform/apple
+else
+PLATFORM_SOURCE=./platform/linux
+endif
 
 all: che ch8asm
 
-che: che.c che_time.c che_time.h che_log.h che_scr.h che_rand.h \
-     platform/linux/che_scr.c platform/linux/che_scr_platform.h \
-     platform/linux/che_rand_linux.c \
-     platform/linux/che_time_linux.c \
-     platform/linux/che_log_linux.c che_machine.c che_cycle.c
-	gcc ${CFLAGS} -o che che.c che_time.c che_machine.c che_cycle.c \
-	    platform/linux/che_rand_linux.c \
-	    platform/linux/che_scr.c  platform/linux/che_time_linux.c \
-	    platform/linux/che_log_linux.c -I . -I platform/linux
+
+che: che.o che_time.o che_log.o che_machine.o che_cycle.o ${PLATFORM_SOURCE}/che_time_platform.o che_scr.o che_rand.o
+
 
 ch8asm: ch8asm.o che_log.o
 
