@@ -1,6 +1,7 @@
 #ifndef CHE_MACHINE_H
 #define CHE_MACHINE_H
 
+#include <stdint.h>
 #include <che_rand.h>
 #include <che_scr.h>
 
