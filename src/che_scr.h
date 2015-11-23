@@ -1,8 +1,18 @@
 #ifndef CHE_SCR_H
 #define CHE_SCR_H
 
+#include <stdint.h>
 #include <stdbool.h>
-#include "che_scr_platform.h"
+
+typedef struct che_scr_t
+{
+	uint8_t *data;
+	bool     changed;
+	int      w;
+	int      h;
+	bool     x_wrap;
+	bool     y_wrap;
+} che_scr_t;
 
 int che_scr_init(che_scr_t *s, int witdth, int height);
 
