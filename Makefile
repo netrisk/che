@@ -1,23 +1,51 @@
 .PHONY: all
+PROJNAME:=che
+SRC_DIR:=./src
+TEST_DIR:=./tests
+TIME_TEST:=che_time_test
 
 PLATFORM=$(shell uname -s)
-ifeq (${PLATFORM},Darwin)
-PLATFORM_DIR=./platform/apple
+ifeq ($(PLATFORM),Darwin)
+PLATFORM_DIR=$(SRC_DIR)/platform/apple
 else
-PLATFORM_DIR=./platform/linux
+PLATFORM_DIR=$(SRC_DIR)/platform/linux
 endif
 
-CHE_INCLUDES=-I . -I ${PLATFORM_DIR}
-CFLAGS+=-g -Wall -Werror ${CHE_INCLUDES}
+CHE_INCLUDES=-I$(SRC_DIR) -I $(PLATFORM_DIR)
+CFLAGS+=-g -Wall -Werror $(CHE_INCLUDES)
 
-all: che ch8asm che_time_test
+SRCFILES:=$(SRC_DIR)/che.c\
+		$(SRC_DIR)/che_time.c\
+		$(SRC_DIR)/che_log.c\
+		$(SRC_DIR)/che_machine.c\
+		$(SRC_DIR)/che_cycle.c\
+		$(SRC_DIR)/che_scr.c\
+		$(SRC_DIR)/che_rand.c\
+		$(PLATFORM_DIR)/che_time_platform.c
+OBJFILES:=$(patsubst %.c,%.o,$(SRCFILES))
+DEPFILES:=$(patsubst %.c,%.d,$(SRCFILES))
 
-che: che.o che_time.o che_log.o che_machine.o che_cycle.o ${PLATFORM_DIR}/che_time_platform.o che_scr.o che_rand.o
+TIME_TEST_SRCFILES:=$(TEST_DIR)/che_time_test.c\
+	  $(SRC_DIR)/che_time.c\
+	  $(PLATFORM_DIR)/che_time_platform.c
+TIME_TEST_OBJFILES:=$(patsubst %.c,%.o,$(TIME_TEST_SRCFILES))
+TIME_TEST_DEPFILES:=$(patsubst %.c,%.d,$(TIME_TEST_SRCFILES))
 
-ch8asm: ch8asm.o che_log.o
-
-che_time_test: che_time_test.o che_time.o ${PLATFORM_DIR}/che_time_platform.o
+all: $(PROJNAME) $(TIME_TEST)
 
 clean:
-	rm -f che
-	rm -f *.o
+	-@$(RM) $(wildcard $(OBJFILES) $(DEPFILES) $(PROJNAME))
+
+-include $(DEPFILES)
+
+$(PROJNAME): $(OBJFILES)
+	@$(CC) $(LDFLAGS) $^ -o $@
+
+$(TIME_TEST): $(TIME_TEST_OBJFILES)
+	@$(CC) $(LDFLAGS) $^ -o $@
+
+
+%.o : %.c Makefile
+	$(CC) $(CFLAGS) -MMD -MP -c $< -o $@
+
+
