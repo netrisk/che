@@ -12,7 +12,7 @@ SRCFILES=che.c\
 		che_log.c\
 		che_machine.c\
 		che_cycle.c\
-		che_scr.c\
+		che_io_console.c\
 		che_rand.c
 
 # this lists the binaries to produce, the (non-PHONY, binary) targets in

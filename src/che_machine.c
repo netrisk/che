@@ -11,7 +11,7 @@
 #define CHE_TICK_CYCLES   (CHE_KIPS * 1000 / CHE_TICK_HZ)
 #define CHE_TICK_TIME_NS  ((1 * 1000 * 1000 * 1000) / CHE_TICK_HZ)
 
-#define CHE_MACHINE_DBG_STATS 
+/* #define CHE_MACHINE_DBG_STATS */
 
 static const che_machine_char_t che_machine_char_table[16] =
 {
@@ -35,7 +35,7 @@ static const che_machine_char_t che_machine_char_table[16] =
 
 static const che_time_t che_time_tick = { 0, CHE_TICK_TIME_NS };
 
-int che_machine_init(che_machine_t *m)
+int che_machine_init(che_machine_t *m, che_io_t *io)
 {
 	memset(&m->r,0, sizeof(che_regs_t));
 	m->pc = CHE_MACHINE_PROGRAM_START;/* loaded programs start here */
@@ -46,7 +46,8 @@ int che_machine_init(che_machine_t *m)
 	che_rand_init(&m->rand, 0);
 	memcpy(m->mem + CHE_MACHINE_CHAR_TABLE_POS, che_machine_char_table,
                sizeof(che_machine_char_table));
-	return che_scr_init(&m->screen, 64, 32);
+	m->io = io;
+	return che_io_init(io, 64, 32);
 }
 
 static inline
@@ -72,12 +73,13 @@ int che_machine_run(che_machine_t *m)
 	che_time_uptime(&last_sleep_time);
 
 	for (;;) {
+		m->keymask = che_io_keymask_get(m->io);
 		int tick_cycles = 0;
 		while (tick_cycles++ < CHE_TICK_CYCLES) {
 			if (che_cycle(m) != 0)
 				return -1;
 		}
-		che_scr_draw_screen(&m->screen);
+		che_io_scr_flip(m->io);
 
 		#ifdef CHE_MACHINE_DBG_STATS
 		static che_time_t last_uptime = { 0, 0 };
@@ -115,5 +117,5 @@ int che_machine_run(che_machine_t *m)
 
 void che_machine_end(che_machine_t *m)
 {
-	che_scr_end(&m->screen);
+	che_io_end(m->io);
 }

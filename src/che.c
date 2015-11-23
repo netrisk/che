@@ -8,6 +8,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include "che_machine.h"
+#include "che_io_console.h"
 
 static
 int che_machine_file_load(che_machine_t *m, const char *filename,
@@ -40,6 +41,7 @@ int che_machine_file_load(che_machine_t *m, const char *filename,
 }
 
 static che_machine_t machine;
+static che_io_console_t io_console;
 
 int main(int argc, char **argv)
 {
@@ -48,9 +50,11 @@ int main(int argc, char **argv)
 		return -1;
 	}
 
-	che_machine_init(&machine);
+	che_io_t *io = che_io_console_init(&io_console);
+	che_machine_init(&machine, io);
 	if (che_machine_file_load(&machine, argv[1],
                                   CHE_MACHINE_PROGRAM_START) != 0) {
+		che_machine_end(&machine);
 		printf("ERROR: loading file\n");
 		return -1;
 	}

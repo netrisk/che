@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <che_rand.h>
 #include <che_scr.h>
+#include <che_io.h>
 
 #define CHE_MACHINE_STACK_LEVELS   32
 #define CHE_MACHINE_MEMORY_SIZE    4096
@@ -35,17 +36,17 @@ typedef struct che_machine_t
 	uint8_t    delay_timer;
 	uint8_t    sound_timer;
 
+	/* Video and keyboard IO */
+	che_io_t  *io;
+
 	/* Key support */
 	uint16_t   keymask;
-
-	/* Display */
-	che_scr_t  screen;
 
 	/* Random number generator */
 	che_rand_t rand;
 } che_machine_t;
 
-int che_machine_init(che_machine_t *m);
+int che_machine_init(che_machine_t *m, che_io_t *io);
 
 int che_machine_run(che_machine_t *m);
 

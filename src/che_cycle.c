@@ -57,7 +57,7 @@ static int che_cycle_function_0(che_machine_t *m, uint16_t opcode)
 		m->pc = m->stack[m->sp];
 	} else if (opcode == 0x00E0) {
 		/* Clear the screen */
-		che_scr_clear(&m->screen);
+		che_io_scr_clear(m->io);
 		CHE_NEXT_INSTRUCTION(m->pc);
 	} else {
 		che_log("WARNING: ignoring RCA 1802 call to 0x%03X", opcode);
@@ -279,9 +279,7 @@ static int che_cycle_function_d(che_machine_t *m, uint16_t opcode)
 	int height = CHE_GET_NIBBLE_0(opcode);
 	int x = m->r.v[CHE_GET_NIBBLE_2(opcode)];
 	int y = m->r.v[CHE_GET_NIBBLE_1(opcode)];
-	m->r.v[0xf] = che_scr_draw_sprite(&m->screen,
-	                                  m->mem + m->r.i,
-	                                  height, x, y);
+	m->r.v[0xf] = che_io_scr_sprite(m->io, m->mem + m->r.i, height, x, y);
 	CHE_NEXT_INSTRUCTION(m->pc);
 	return 0;
 }
