@@ -1,4 +1,5 @@
 #include <che_io_console.h>
+#include <che_util.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
@@ -73,11 +74,6 @@ uint16_t che_io_console_keymask_get(che_io_t *io)
 	#endif /* CHE_IO_CONSOLE_LINUX */
 	return 0;
 }
-
-#include <stddef.h>
-#define che_containerof(ptr, type, member) ({                \
-        const typeof( ((type *)0)->member ) *__mptr = (ptr); \
-        (type *)( (char *)__mptr - offsetof(type,member) );})
 
 /* #define CHE_SCR_TEST */
 
