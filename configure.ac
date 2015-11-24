@@ -10,7 +10,7 @@ AM_INIT_AUTOMAKE
 AC_PROG_CC
 
 # Checks for libraries.
-AC_CHECK_LIB(['sdl'], ['SDL_Init'],[],[AC_MSG_ERROR([SDL library is not installed])])
+AC_CHECK_LIB([SDL2], [main],[],[AC_MSG_ERROR([SDL2 library is not installed])])
 
 # Checks for header files.
 AC_CHECK_HEADERS([fcntl.h mach/mach.h stdint.h stdlib.h string.h strings.h unistd.h])
