@@ -7,8 +7,8 @@
 
 /* Temporization */
 #define CHE_TICK_HZ       60
-#define CHE_KIPS          1000 /* 1 MHz */
-#define CHE_TICK_CYCLES   (CHE_KIPS * 1000 / CHE_TICK_HZ)
+#define CHE_IPS           1000
+#define CHE_TICK_CYCLES   (CHE_IPS / CHE_TICK_HZ)
 #define CHE_TICK_TIME_NS  ((1 * 1000 * 1000 * 1000) / CHE_TICK_HZ)
 
 /* #define CHE_MACHINE_DBG_STATS */
