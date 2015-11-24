@@ -6,12 +6,12 @@
 #include <SDL.h>
 
 static const uint8_t che_key_map[16] = {
-	53 /* X */,
-	10 /* 1 */, 11 /* 2 */, 12 /* 3 */,
-	24 /* Q */, 25 /* W */, 26 /* E */,
-	38 /* A */, 39 /* S */, 40 /* D */,
-	52 /* Z */, 54 /* C */, 13 /* 4 */,
-	27 /* R */, 41 /* F */, 55 /* V */
+	27 /* X */,
+	30 /* 1 */, 31 /* 2 */, 32 /* 3 */,
+	20 /* Q */, 26 /* W */,  8 /* E */,
+	 4 /* A */, 22 /* S */,  7 /* D */,
+	29 /* Z */,  6 /* C */, 33 /* 4 */,
+	21 /* R */,  9 /* F */, 25 /* V */
 };
 
 static
@@ -142,44 +142,42 @@ int che_io_sdl_io_init(che_io_t *io, int width, int height)
 	che_io_sdl_clear(io);
 
 	SDL_Init(SDL_INIT_VIDEO);
-	SDL_SetVideoMode(640, 320, 0, 0);
-	SDL_EnableUNICODE(1);
+	SDL_CreateWindowAndRenderer(640, 320, 0, &c->window, &c->renderer);
+
 	return 0;
 }
 
 static
 void che_io_sdl_render(che_io_t *io)
 {
+	che_io_sdl_t *c = che_containerof(io, che_io_sdl_t, io);
+	int x, y;
+
+	if (!c->changed)
+		return;
+
+	SDL_Rect rect = { 0, 0, 10, 10 };
+
+	SDL_RenderClear(c->renderer);
+	for (y = 0; y < c->h; y++) {
+		for (x = 0; x < c->w; x++) {
+			if ((c->data[y * (c->w >> 3) + (x >> 3)] >> (7 - (x & 7))) & 1) {
+				rect.x = x * 10;
+				rect.y = y * 10;
+				SDL_RenderFillRect(c->renderer, &rect);
+			}
+		}
+	}
 }
 
 static
 void che_io_sdl_flip(che_io_t *io)
 {
 	che_io_sdl_t *c = che_containerof(io, che_io_sdl_t, io);
-	int x, y;
-
 	if (!c->changed)
 		return;
 	c->changed = false;
-	
-	/* Clear the screen */
-	printf("\e[1;1H\e[2J\n");
-
-	for (y = 0; y < c->h; y++) {
-		char line[256];
-		int pos = 0;
-		for (x = 0; x < c->w; x++) {
-			char ch;
-			if ((c->data[y * (c->w >> 3) + (x >> 3)] >> (7 - (x & 7))) & 1)
-				ch = 'O';
-			else
-				ch = ' ';
-			line[pos++] = ch;
-		}
-		line[pos] = 0;
-		printf("%s\n", line);
-	}
-	fflush(stdout);
+	SDL_RenderPresent(c->renderer);
 }
 
 static

@@ -73,13 +73,17 @@ int che_machine_run(che_machine_t *m)
 	che_time_uptime(&last_sleep_time);
 
 	for (;;) {
+		/* Get the pressed keys */
 		m->keymask = che_io_keymask_get(m->io);
+
+		/* Execute cycles */
 		int tick_cycles = 0;
 		while (tick_cycles++ < CHE_TICK_CYCLES) {
 			if (che_cycle(m) != 0)
 				return -1;
 		}
-		che_io_scr_flip(m->io);
+		/* Render screen, to do all CPU intensive work before sleeping */
+		che_io_scr_render(m->io);
 
 		#ifdef CHE_MACHINE_DBG_STATS
 		static che_time_t last_uptime = { 0, 0 };
@@ -104,13 +108,17 @@ int che_machine_run(che_machine_t *m)
 		}
 		#endif /* CHE_MACHINE_DBG_STATS */
 
-		/* Sleep until the next tick */
-		che_sleep_tick(&last_sleep_time);
-
+		/* Decrement counter for next ticks */
 		if (m->delay_timer)
 			m->delay_timer--;
 		if (m->sound_timer)
 			m->sound_timer--;
+
+		/* Sleep until the next tick */
+		che_sleep_tick(&last_sleep_time);
+
+		/* Flip screen on the exact time that we wake up */
+		che_io_scr_flip(m->io);
 	}
 	return 0;
 }

@@ -4,7 +4,7 @@ AUTOMAKE_OPTIONS=foreign
 # Aditional aclocal flags
 # what flags you want to pass to the C compiler & linker
 # TODO: Do this SDL stuff properly
-#AM_CFLAGS=-DCHE_CFG_SDL -D_GNU_SOURCE=1 -D_REENTRANT -I/usr/include/SDL -lSDL
+#AM_CFLAGS=-DCHE_CFG_SDL -D_REENTRANT -I/usr/include/SDL2 -lSDL2
 AM_CFLAGS=
 AM_CPPFLAGS=
 
