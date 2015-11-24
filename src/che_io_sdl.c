@@ -143,6 +143,7 @@ int che_io_sdl_io_init(che_io_t *io, int width, int height)
 
 	SDL_Init(SDL_INIT_VIDEO);
 	SDL_CreateWindowAndRenderer(640, 320, 0, &c->window, &c->renderer);
+	SDL_SetWindowTitle(c->window, "che CHIP-8 emulator");
 
 	return 0;
 }
