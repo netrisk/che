@@ -25,6 +25,9 @@ typedef struct che_io_sdl_t
 	uint16_t      keymask;
 	SDL_Window   *window;
 	SDL_Renderer *renderer;
+
+	/* Audio */
+	int v;
 } che_io_sdl_t;
 
 che_io_t *che_io_sdl_init(che_io_sdl_t *c);

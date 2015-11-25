@@ -73,6 +73,8 @@ int che_machine_run(che_machine_t *m)
 	che_time_uptime(&last_sleep_time);
 
 	for (;;) {
+		bool playing_tone = m->sound_timer;
+
 		/* Get the pressed keys */
 		m->keymask = che_io_keymask_get(m->io);
 
@@ -119,6 +121,15 @@ int che_machine_run(che_machine_t *m)
 
 		/* Flip screen on the exact time that we wake up */
 		che_io_scr_flip(m->io);
+
+		/* Check for sound start/stop */
+		if (playing_tone) {
+			if (!m->sound_timer)
+				che_io_tone_stop(m->io);
+		} else {
+			if (m->sound_timer)
+				che_io_tone_start(m->io);
+		}
 	}
 	return 0;
 }
