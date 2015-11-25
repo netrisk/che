@@ -10,6 +10,9 @@
 #include "che_machine.h"
 #include "che_io_console.h"
 #include "che_io_sdl.h"
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
 
 static
 int che_machine_file_load(che_machine_t *m, const char *filename,
