@@ -22,6 +22,10 @@ typedef struct che_io_ops_t
 
 	uint16_t (*keymask_get)(che_io_t *io);
 
+	void (*tone_start)(che_io_t *io);
+
+	void (*tone_stop)(che_io_t *io);
+
 	void (*end)(che_io_t *io);
 } che_io_ops_t;
 
@@ -72,6 +76,20 @@ static inline
 uint16_t che_io_keymask_get(che_io_t *io)
 {
 	return io->ops->keymask_get(io);
+}
+
+static inline
+void che_io_tone_start(che_io_t *io)
+{
+	if (io->ops->tone_start)
+		io->ops->tone_start(io);
+}
+
+static inline
+void che_io_tone_stop(che_io_t *io)
+{
+	if (io->ops->tone_stop)
+		io->ops->tone_stop(io);
 }
 
 static inline
