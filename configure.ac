@@ -11,16 +11,13 @@ AC_CANONICAL_HOST
 # Check for which host we are on and setup a few things
 # specifically based on the host
 case $host_os in
-  darwin* )
+  darwin*)
         AC_MSG_NOTICE([Darwin platform detected])
-        #Im not sure about this way. Maybe there is a better way
-        AM_CONDITIONAL(DARWIN_PLATFORM, true)
-        AM_CONDITIONAL(LINUX_PLATFORM, false)
+        AC_DEFINE([CHE_DARWIN],[],[Compiling under MacOsX])
         ;;
   linux*)
         AC_MSG_NOTICE([Linux platform detected])
-        AM_CONDITIONAL(LINUX_PLATFORM, true)
-        AM_CONDITIONAL(DARWIN_PLATFORM, false)
+        AC_DEFINE([CHE_LINUX],[],[Compiling under Linux])
         ;;
     *)
         #Default Case

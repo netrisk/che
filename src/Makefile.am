@@ -15,13 +15,9 @@ SRCFILES=che.c\
 		che_cycle.c\
 		che_io_console.c\
 		che_io_sdl.c\
-		che_rand.c 
-
-if LINUX_PLATFORM
-SRCFILES+=che_time_linux.c
-else
-SRCFILES+=che_time_apple.c
-endif
+		che_rand.c\
+		che_time_linux.c\
+		che_time_apple.c
 
 # this lists the binaries to produce, the (non-PHONY, binary) targets in
 # the previous manual Makefile

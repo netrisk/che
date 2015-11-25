@@ -1,3 +1,6 @@
+#include <config.h>
+
+#ifdef CHE_DARWIN
 #include <che_time.h>
 #include <time.h>
 #include <mach/clock.h>
@@ -22,3 +25,4 @@ void che_time_sleep(const che_time_t *t)
 		{ t->s, t->ns };
 	while (nanosleep(&sleep_time, &sleep_time) != 0);
 }
+#endif /* CHE_DARWIN */
