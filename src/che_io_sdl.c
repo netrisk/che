@@ -4,7 +4,7 @@
 
 #include <che_util.h>
 #include <SDL.h>
-#include <SDL/SDL_audio.h>
+#include <SDL_audio.h>
 #include <math.h>
 
 #define CHE_IO_SDL_AMPLITUDE 1000
