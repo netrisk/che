@@ -29,7 +29,7 @@ esac
 AC_PROG_CC
 
 # Checks for libraries.
-AC_CHECK_LIB(SDL2, SDL_Init)
+AC_CHECK_LIB(SDL2, SDL_Init,[], [AC_MSG_ERROR([SDL2 has not been detected!!!])])
 
 # Checks for header files.
 AC_CHECK_HEADERS([fcntl.h mach/mach.h stdint.h stdlib.h string.h strings.h unistd.h])
