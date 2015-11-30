@@ -25,6 +25,9 @@ case $host_os in
         ;;
 esac
 
+#Check if SDL is disabled or not
+AC_ARG_ENABLE([SDL],[AS_HELP_STRING([--disable-SDL],[Disable SDL support])],[AC_MSG_NOTICE([SDL disabled])],[AC_MSG_NOTICE([SDL not disabled])])
+
 # Checks for programs.
 AC_PROG_CC
 
