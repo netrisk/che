@@ -4,10 +4,9 @@
 #include <string.h>
 #include <stdio.h>
 
-/* TODO: do this properly, it's quickly done to begin doing SDL stuff */
-#ifdef __linux__
+#ifdef CHE_LINUX
 #define CHE_IO_CONSOLE_LINUX
-#endif
+#endif /* CHE_LINUX */
 
 #ifdef CHE_IO_CONSOLE_LINUX
 #include <termios.h>

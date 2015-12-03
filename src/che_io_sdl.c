@@ -1,6 +1,6 @@
 #include <che_io_sdl.h>
 
-#ifdef CHE_CFG_SDL
+#ifdef CHE_USE_SDL
 
 #include <che_util.h>
 #include <SDL.h>
@@ -259,4 +259,4 @@ che_io_t *che_io_sdl_init(che_io_sdl_t *c)
 	return &c->io;
 }
 
-#endif /* CHE_CFG_SDL */
+#endif /* CHE_USE_SDL */

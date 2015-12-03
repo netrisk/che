@@ -18,6 +18,12 @@ case $host_os in
   linux*)
         AC_MSG_NOTICE([Linux platform detected])
         AC_DEFINE([CHE_LINUX],[],[Compiling under Linux])
+        AC_CHECK_PROG(SDL2_CONFIG, sdl2-config, [yes], [no])
+        if test x"$SDL2_CONFIG" != x"yes" ; then
+    		AC_MSG_ERROR([I can't found the sd2-config script])
+		fi
+        AC_SUBST(SDL_CFLAGS,[`sdl2-config --cflags`])
+        AC_SUBST(SDL_LDFLAGS,[`sdl2-config --libs`])
         ;;
     *)
         #Default Case
@@ -25,14 +31,26 @@ case $host_os in
         ;;
 esac
 
-#Check if SDL is disabled or not
-AC_ARG_ENABLE([SDL],[AS_HELP_STRING([--disable-SDL],[Disable SDL support])],[AC_MSG_NOTICE([SDL disabled])],[AC_MSG_NOTICE([SDL not disabled])])
-
 # Checks for programs.
 AC_PROG_CC
 
-# Checks for libraries.
-AC_CHECK_LIB(SDL2, SDL_Init,[], [AC_MSG_ERROR([SDL2 has not been detected!!!])])
+#Check if SDL is disabled or not
+AC_ARG_ENABLE([sdl],
+			  [AS_HELP_STRING([--disable-sdl],[Disable SDL support])],
+			  [disable_sdl=yes],
+			  [disable_sdl=no])
+
+# SDL functionality
+AC_MSG_CHECKING([Configuration: SDL enable/disable])
+case x$disable_sdl in
+xno) AC_MSG_RESULT([no]) 
+	AC_CHECK_LIB(SDL2, SDL_Init,[], [AC_MSG_ERROR([SDL2 has not been detected!!!])])
+	AC_DEFINE([CHE_USE_SDL],[],[Enable SDL])
+
+	;;
+xyes) AC_MSG_RESULT([yes]) ;;
+*)  AC_MSG_ERROR([Invalid: $enable_sdl]) ;;
+esac
 
 # Checks for header files.
 AC_CHECK_HEADERS([fcntl.h mach/mach.h stdint.h stdlib.h string.h strings.h unistd.h])
@@ -51,3 +69,4 @@ AC_FUNC_MALLOC
 AC_CHECK_FUNCS([clock_gettime memset strrchr])
 
 AC_OUTPUT(Makefile src/Makefile)
+
