@@ -4,7 +4,7 @@ AUTOMAKE_OPTIONS=foreign
 # Aditional aclocal flags
 # what flags you want to pass to the C compiler & linker
 AM_CFLAGS=@SDL_CFLAGS@
-AM_LDFLAGS= -lm @SDL_LDFLAGS@
+AM_LDFLAGS= @SDL_LDFLAGS@
 AM_CPPFLAGS=
 
 SRCFILES=che.c\
@@ -20,5 +20,5 @@ SRCFILES=che.c\
 
 # this lists the binaries to produce, the (non-PHONY, binary) targets in
 # the previous manual Makefile
-bin_PROGRAMS = che 
-che_SOURCES = $(SRCFILES) 
+bin_PROGRAMS = che
+che_SOURCES = $(SRCFILES)

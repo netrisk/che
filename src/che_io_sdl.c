@@ -5,11 +5,14 @@
 #include <che_util.h>
 #include <SDL.h>
 #include <SDL_audio.h>
-#include <math.h>
 
-#define CHE_IO_SDL_AMPLITUDE 1000
-#define CHE_IO_SDL_FREQUENCY 44100
-#define CHE_IO_SDL_TONE_FREQ 500
+#define CHE_IO_SDL_FREQUENCY 11025
+
+/* This is a 525 Hz tone */
+static uint16_t che_io_sdl_tone_chunk[CHE_IO_SDL_SAMPLES_NUM] = {
+	0, 9658, 18458, 25618, 30502, 32675, 31945, 28377, 22287, 14217, 4884,
+	-4884, -14217, -22287, -28377, -31945, -32675, -30502, -25618, -18458,
+	-9658 };
 
 static const uint8_t che_key_map[16] = {
 	27 /* X */,
@@ -140,13 +143,32 @@ void che_io_sdl_audio_callback(void *param, uint8_t *_stream, int length)
 {
 	che_io_sdl_t *s = (che_io_sdl_t *)param;
 	int16_t *stream = (int16_t *)_stream;
-	int i; 
+	
+	/* TODO: this could be done much better, because with this API and
+	         implementation the tone has to be multiple of 256 samples
+	         and even the duration depends on when the playing variable
+	         is set */
 
-	for (i = 0; i < length >> 1; i++) {
-		stream[i] = CHE_IO_SDL_AMPLITUDE *
-		            sin(s->v * 2 * M_PI / CHE_IO_SDL_FREQUENCY);
-		s->v += CHE_IO_SDL_TONE_FREQ;
+	SDL_LockAudio();
+	if (s->playing) {
+		int i;
+		int samples_rem = length >> 1;
+		for (i = 0; i < samples_rem; i++) {
+			stream[i] = s->samples[s->cur_sample++];
+			if (s->cur_sample >= 21)
+				s->cur_sample = 0;
+		}
+	} else {
+		memset(_stream, 0, length);
 	}
+	SDL_UnlockAudio();
+}
+
+static void che_io_sdl_set_tone_generate(che_io_sdl_t *s, int volume)
+{
+	int i;
+	for (i = 0; i < CHE_IO_SDL_SAMPLES_NUM; i++)
+		s->samples[i] = (che_io_sdl_tone_chunk[i] * volume) / 100;
 }
 
 static
@@ -176,27 +198,39 @@ int che_io_sdl_io_init(che_io_t *io, int width, int height)
 	desiredSpec.freq = CHE_IO_SDL_FREQUENCY;
 	desiredSpec.format = AUDIO_S16SYS;
 	desiredSpec.channels = 1;
-	desiredSpec.samples = 2048;
+	desiredSpec.samples = 256;
 	desiredSpec.callback = che_io_sdl_audio_callback;
 	desiredSpec.userdata = c;
 
 	/* TODO: look for result */
 	SDL_OpenAudio(&desiredSpec, &obtainedSpec);
-	c->v = 0;
-
+	che_io_sdl_set_tone_generate(c, 30);
+	c->cur_sample = 0;
+	c->playing = false;
+	SDL_PauseAudio(0);
 	return 0;
 }
 
 static void che_io_sdl_tone_start(che_io_t *io)
 {
+	che_io_sdl_t *s = che_containerof(io, che_io_sdl_t, io);
+
 	/* TODO: this is not good, as timing is not exact */
-	SDL_PauseAudio(0);
+
+	SDL_LockAudio();
+	s->playing = true;
+	SDL_UnlockAudio();
 }
 
 static void che_io_sdl_tone_stop(che_io_t *io)
 {
+	che_io_sdl_t *s = che_containerof(io, che_io_sdl_t, io);
+
 	/* TODO: this is not good, as timing is not exact */
-	SDL_PauseAudio(1);
+
+	SDL_LockAudio();
+	s->playing = false;
+	SDL_UnlockAudio();
 }
 
 static
