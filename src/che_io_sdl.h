@@ -19,7 +19,7 @@ typedef struct che_io_sdl_t
 
 	/* Own members */
 	uint8_t      *data;
-	bool          changed;
+	bool          draw_pending;
 	int           w;
 	int           h;
 	bool          x_wrap;
@@ -27,6 +27,16 @@ typedef struct che_io_sdl_t
 	uint16_t      keymask;
 	SDL_Window   *window;
 	SDL_Renderer *renderer;
+	uint8_t       pix_size;
+	uint8_t       color_r;
+	uint8_t       color_g;
+	uint8_t       color_b;
+
+	/* Phosphor data */
+	uint8_t       ph_level;
+	bool          ph_changed;
+	uint8_t      *ph_prev_bitmap;
+	uint8_t      *ph_map;
 
 	/* Audio */
 	int     cur_sample;

@@ -8,7 +8,7 @@
 
 #define CHE_IO_SDL_FREQUENCY 11025
 
-/* This is a 525 Hz tone */
+/* This is a 525 Hz tone sampled at 11025 Hz */
 static uint16_t che_io_sdl_tone_chunk[CHE_IO_SDL_SAMPLES_NUM] = {
 	0, 9658, 18458, 25618, 30502, 32675, 31945, 28377, 22287, 14217, 4884,
 	-4884, -14217, -22287, -28377, -31945, -32675, -30502, -25618, -18458,
@@ -117,7 +117,7 @@ bool che_io_sdl_sprite(che_io_t *io, uint8_t *buf, int h, int x, int y)
 	}
 
 end:
-	c->changed = true;
+	c->draw_pending = true;
 	return collision;
 }
 
@@ -126,7 +126,7 @@ void che_io_sdl_clear(che_io_t *io)
 {
 	che_io_sdl_t *c = che_containerof(io, che_io_sdl_t, io);
 	memset(c->data, 0, (c->w >> 3) * c->h);
-	c->changed = true;
+	c->draw_pending = true;
 
 	#ifdef CHE_SCR_TEST
 	uint8_t sprite = 0xff;
@@ -183,6 +183,10 @@ int che_io_sdl_io_init(che_io_t *io, int width, int height)
 	c->x_wrap = true;
 	c->y_wrap = true;
 	c->keymask = 0;
+	c->pix_size = 10;
+	c->color_r = 20;
+	c->color_g = 255;
+	c->color_b = 20;
 	che_io_sdl_clear(io);
 
 	/* Video */
@@ -201,6 +205,14 @@ int che_io_sdl_io_init(che_io_t *io, int width, int height)
 	desiredSpec.samples = 256;
 	desiredSpec.callback = che_io_sdl_audio_callback;
 	desiredSpec.userdata = c;
+
+	/* Phosphor support */
+	c->ph_level = 1;
+	c->ph_changed = false;
+	c->ph_prev_bitmap = malloc((width >> 3) * height);
+	c->ph_map = malloc(width * height);
+	memset(c->ph_prev_bitmap, 0, (c->w >> 3) * c->h);
+	memset(c->ph_map, 0, c->w * c->h);
 
 	/* TODO: look for result */
 	SDL_OpenAudio(&desiredSpec, &obtainedSpec);
@@ -234,22 +246,69 @@ static void che_io_sdl_tone_stop(che_io_t *io)
 }
 
 static
+void che_io_sdl_render_phosphor(che_io_sdl_t *s)
+{
+	SDL_Rect rect = { 0, 0, s->pix_size, s->pix_size };
+	uint8_t *ph_pix;
+	bool now_on;
+	bool prev_on;
+	int x, y;
+
+	/* Check if phosphor is activated */
+	if (!s->ph_level)
+		return;
+
+	/* Check if any pixels have phosphor left */
+	s->ph_changed = false;
+	for (y = 0; y < s->h; y++) {
+		for (x = 0; x < s->w; x++) {
+			ph_pix = &s->ph_map[(y * s->w) + x];
+			now_on = (s->data[y * (s->w >> 3) + (x >> 3)] >> (7 - (x & 7))) & 1;
+			prev_on = (s->ph_prev_bitmap[y * (s->w >> 3) + (x >> 3)] >> (7 - (x & 7))) & 1;
+			if (prev_on && !now_on)
+				*ph_pix = s->ph_level;
+			if (*ph_pix) {
+				rect.x = x * s->pix_size;
+				rect.y = y * s->pix_size;
+				uint8_t intens_r = ((*ph_pix * s->color_r) / (s->ph_level + 1));
+				uint8_t intens_g = ((*ph_pix * s->color_g) / (s->ph_level + 1));
+				uint8_t intens_b = ((*ph_pix * s->color_b) / (s->ph_level + 1));
+				SDL_SetRenderDrawColor(s->renderer, intens_r,
+				                       intens_g, intens_b, 255);
+				SDL_RenderFillRect(s->renderer, &rect);
+				(*ph_pix)--;
+				s->ph_changed = true;
+			}
+		}
+	}
+	memcpy(s->ph_prev_bitmap, s->data, (s->w >> 3) * s->h);
+}
+
+static
 void che_io_sdl_render(che_io_t *io)
 {
 	che_io_sdl_t *c = che_containerof(io, che_io_sdl_t, io);
 	int x, y;
 
-	if (!c->changed)
+	if (!c->draw_pending)
 		return;
 
-	SDL_Rect rect = { 0, 0, 10, 10 };
-
+	/* Clear the screen */
+	SDL_SetRenderDrawColor(c->renderer, 0, 0, 0, 255);
 	SDL_RenderClear(c->renderer);
+
+	/* Render phosphor */
+	che_io_sdl_render_phosphor(c);
+
+	/* Draw actual pixels */
+	SDL_Rect rect = { 0, 0, c->pix_size, c->pix_size };
+	SDL_SetRenderDrawColor(c->renderer, c->color_r, c->color_g,
+	                       c->color_b, 255); 
 	for (y = 0; y < c->h; y++) {
 		for (x = 0; x < c->w; x++) {
 			if ((c->data[y * (c->w >> 3) + (x >> 3)] >> (7 - (x & 7))) & 1) {
-				rect.x = x * 10;
-				rect.y = y * 10;
+				rect.x = x * c->pix_size;
+				rect.y = y * c->pix_size;
 				SDL_RenderFillRect(c->renderer, &rect);
 			}
 		}
@@ -260,9 +319,9 @@ static
 void che_io_sdl_flip(che_io_t *io)
 {
 	che_io_sdl_t *c = che_containerof(io, che_io_sdl_t, io);
-	if (!c->changed)
+	if (!c->draw_pending && !c->ph_changed)
 		return;
-	c->changed = false;
+	c->draw_pending = c->ph_changed;
 	SDL_RenderPresent(c->renderer);
 }
 
@@ -271,6 +330,8 @@ void che_io_sdl_end(che_io_t *io)
 {
 	che_io_sdl_t *c = che_containerof(io, che_io_sdl_t, io);
 	free(c->data);
+	free(c->ph_prev_bitmap);
+	free(c->ph_map);
 	SDL_CloseAudio();
 }
 
