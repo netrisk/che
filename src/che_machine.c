@@ -47,7 +47,7 @@ int che_machine_init(che_machine_t *m, che_io_t *io)
 	memcpy(m->mem + CHE_MACHINE_CHAR_TABLE_POS, che_machine_char_table,
                sizeof(che_machine_char_table));
 	m->io = io;
-	return che_io_init(io, 64, 32);
+	return che_io_init(io);
 }
 
 static inline

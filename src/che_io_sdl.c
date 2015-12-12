@@ -122,11 +122,17 @@ end:
 }
 
 static
+void che_io_sdl_clear_internal(che_io_sdl_t *s)
+{
+	memset(s->data, 0, (s->w >> 3) * s->h);
+	s->draw_pending = true;
+}
+
+static
 void che_io_sdl_clear(che_io_t *io)
 {
-	che_io_sdl_t *c = che_containerof(io, che_io_sdl_t, io);
-	memset(c->data, 0, (c->w >> 3) * c->h);
-	c->draw_pending = true;
+	che_io_sdl_t *s = che_containerof(io, che_io_sdl_t, io);
+	che_io_sdl_clear_internal(s);
 
 	#ifdef CHE_SCR_TEST
 	uint8_t sprite = 0xff;
@@ -171,23 +177,44 @@ static void che_io_sdl_set_tone_generate(che_io_sdl_t *s, int volume)
 		s->samples[i] = (che_io_sdl_tone_chunk[i] * volume) / 100;
 }
 
+static void che_io_sdl_screen_alloc(che_io_sdl_t *s, int width, int height,
+                                    int pix_size)
+{
+	/* Screen and pixel size */
+	s->w = width;
+	s->h = height;
+	s->pix_size = pix_size;
+
+	/* Memory management */
+	s->data = malloc((s->w >> 3) * s->h);
+	s->ph_prev_bitmap = malloc((s->w >> 3) * s->h);
+	s->ph_map = malloc(s->w * s->h);
+	memset(s->ph_prev_bitmap, 0, (s->w >> 3) * s->h);
+	memset(s->ph_map, 0, s->w * s->h);
+	che_io_sdl_clear_internal(s);
+}
+
+static int che_io_sdl_screen_free(che_io_sdl_t *s)
+{
+	free(s->data);
+	free(s->ph_prev_bitmap);
+	free(s->ph_map);
+	return 0;
+}
+
 static
-int che_io_sdl_io_init(che_io_t *io, int width, int height)
+int che_io_sdl_io_init(che_io_t *io)
 {
 	che_io_sdl_t *c = che_containerof(io, che_io_sdl_t, io);
-	if (width % 8)
-		return -1;
-	c->data = malloc((width >> 3) * height);
-	c->w = width;
-	c->h = height;
 	c->x_wrap = true;
 	c->y_wrap = true;
 	c->keymask = 0;
-	c->pix_size = 10;
 	c->color_r = 20;
 	c->color_g = 255;
 	c->color_b = 20;
-	che_io_sdl_clear(io);
+
+	/* Allocate screen for normal mode by default */
+	che_io_sdl_screen_alloc(c, 64, 32, 10);	
 
 	/* Video */
 	SDL_Init(SDL_INIT_VIDEO);
@@ -209,10 +236,6 @@ int che_io_sdl_io_init(che_io_t *io, int width, int height)
 	/* Phosphor support */
 	c->ph_level = 1;
 	c->ph_changed = false;
-	c->ph_prev_bitmap = malloc((width >> 3) * height);
-	c->ph_map = malloc(width * height);
-	memset(c->ph_prev_bitmap, 0, (c->w >> 3) * c->h);
-	memset(c->ph_map, 0, c->w * c->h);
 
 	/* TODO: look for result */
 	SDL_OpenAudio(&desiredSpec, &obtainedSpec);
@@ -220,6 +243,25 @@ int che_io_sdl_io_init(che_io_t *io, int width, int height)
 	c->cur_sample = 0;
 	c->playing = false;
 	SDL_PauseAudio(0);
+	return 0;
+}
+
+static
+int che_io_sdl_extended(che_io_t *io, bool extended)
+{
+	che_io_sdl_t *s = che_containerof(io, che_io_sdl_t, io);
+	int w, h, pix_size;
+	if (extended) {
+		w = 128;
+		h = 64;
+		pix_size = 5;
+	} else {
+		w = 64;
+		h = 32;
+		pix_size = 10;
+	}
+	che_io_sdl_screen_free(s);
+	che_io_sdl_screen_alloc(s, w, h, pix_size);
 	return 0;
 }
 
@@ -329,23 +371,22 @@ static
 void che_io_sdl_end(che_io_t *io)
 {
 	che_io_sdl_t *c = che_containerof(io, che_io_sdl_t, io);
-	free(c->data);
-	free(c->ph_prev_bitmap);
-	free(c->ph_map);
+	che_io_sdl_screen_free(c);
 	SDL_CloseAudio();
 }
 
 static const che_io_ops_t che_io_sdl_ops =
 {
-	.init        = che_io_sdl_io_init,
-	.scr_sprite  = che_io_sdl_sprite,
-	.scr_clear   = che_io_sdl_clear,
-	.scr_render  = che_io_sdl_render,
-	.scr_flip    = che_io_sdl_flip,
-	.keymask_get = che_io_sdl_keymask_get,
-	.tone_start  = che_io_sdl_tone_start,
-	.tone_stop   = che_io_sdl_tone_stop,
-	.end         = che_io_sdl_end,
+	.init         = che_io_sdl_io_init,
+	.scr_extended = che_io_sdl_extended,
+	.scr_sprite   = che_io_sdl_sprite,
+	.scr_clear    = che_io_sdl_clear,
+	.scr_render   = che_io_sdl_render,
+	.scr_flip     = che_io_sdl_flip,
+	.keymask_get  = che_io_sdl_keymask_get,
+	.tone_start   = che_io_sdl_tone_start,
+	.tone_stop    = che_io_sdl_tone_stop,
+	.end          = che_io_sdl_end,
 };
 
 che_io_t *che_io_sdl_init(che_io_sdl_t *c)

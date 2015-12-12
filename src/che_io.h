@@ -9,13 +9,15 @@ typedef struct che_io_t che_io_t;
 
 typedef struct che_io_ops_t
 {
-	int (*init)(che_io_t *io, int width, int height);
+	int (*init)(che_io_t *io);
+
+	int  (*scr_extended)(che_io_t *io, bool extended);
 
 	/* Return true if a collision has happened */
 	bool (*scr_sprite)(che_io_t *io, uint8_t *buf, int h, int x, int y);
-	
+
 	void (*scr_clear)(che_io_t *io);
-	
+
 	void (*scr_render)(che_io_t *io);
 
 	void (*scr_flip)(che_io_t *io);
@@ -43,9 +45,17 @@ void che_io_obj_init(che_io_t *io, const che_io_ops_t *ops, const char *name)
 }
 
 static inline
-int che_io_init(che_io_t *io, int width, int height)
+int che_io_init(che_io_t *io)
 {
-	return io->ops->init(io, width, height);
+	return io->ops->init(io);
+}
+
+static inline
+int che_io_scr_extended(che_io_t *io, bool extended)
+{
+	if (!io->ops->scr_extended)
+		return -1;
+	return io->ops->scr_extended(io, extended);
 }
 
 static inline

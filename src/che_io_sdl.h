@@ -22,12 +22,12 @@ typedef struct che_io_sdl_t
 	bool          draw_pending;
 	int           w;
 	int           h;
+	uint8_t       pix_size;
 	bool          x_wrap;
 	bool          y_wrap;
 	uint16_t      keymask;
 	SDL_Window   *window;
 	SDL_Renderer *renderer;
-	uint8_t       pix_size;
 	uint8_t       color_r;
 	uint8_t       color_g;
 	uint8_t       color_b;
