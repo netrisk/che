@@ -6,12 +6,15 @@
 #include <che_scr.h>
 #include <che_io.h>
 
-#define CHE_MACHINE_STACK_LEVELS       32
-#define CHE_MACHINE_MEMORY_SIZE        4096
-#define CHE_MACHINE_PROGRAM_START      0x200
-#define CHE_MACHINE_4X5_CHAR_TABLE_POS 0x0
-
 typedef uint8_t che_machine_4x5_char_t[5];
+typedef uint8_t che_machine_8x10_char_t[10];
+
+#define CHE_MACHINE_STACK_LEVELS        32
+#define CHE_MACHINE_MEMORY_SIZE         4096
+#define CHE_MACHINE_PROGRAM_START       0x200
+#define CHE_MACHINE_4X5_CHAR_TABLE_POS  0x0
+#define CHE_MACHINE_8X10_CHAR_TABLE_POS \
+	(CHE_MACHINE_4X5_CHAR_TABLE_POS + sizeof(che_machine_4x5_char_t) * 16)
 
 typedef struct che_regs_t
 {
