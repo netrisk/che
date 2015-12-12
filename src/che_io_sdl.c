@@ -162,7 +162,7 @@ void che_io_sdl_clear(che_io_t *io)
 	#ifdef CHE_SCR_TEST
 	uint8_t sprite = 0xff;
 	int x;
-	for (x = 0; x < c->w; x++)
+	for (x = 0; x < s->w; x++)
 		che_io_sdl_sprite(io, &sprite, 1, x + 16, x);
 	#endif
 }
@@ -291,23 +291,26 @@ static void che_io_sdl_scroll_down(che_io_t *io, int lines)
 static void che_io_sdl_scroll_left(che_io_t *io)
 {
 	che_io_sdl_t *s = che_containerof(io, che_io_sdl_t, io);
-	int chunks_per_line = (s->w >> 3) >> 2;
+	int chunks_per_line = s->w >> 3;
 	int bits = 4;
 	if (!s->extended)
 		bits = 2;
 	int y;
 	for (y = 0; y < s->h; y++) {
-		uint32_t prev_chunk_value = 0;
-		int chunk_num = chunks_per_line - 1;
-		while (chunk_num >= 0) {
-			uint32_t *chunk_ptr = (uint32_t *)s->data;
+		uint8_t prev_chunk_value = 0;
+		int chunk_num = 0;
+		while (chunk_num < chunks_per_line) {
+			uint8_t *chunk_ptr = s->data;
 			chunk_ptr += y * chunks_per_line;
 			chunk_ptr += chunk_num;
-			uint32_t orig_chunk_value = *chunk_ptr;
-			*chunk_ptr  = orig_chunk_value << bits;
-			*chunk_ptr |= prev_chunk_value >> (32 - bits);
-			prev_chunk_value = orig_chunk_value;
-			chunk_num--;
+			uint8_t next_chunk_value;
+			if (chunk_num + 1 < chunks_per_line)
+				next_chunk_value = *(chunk_ptr + 1);
+			else
+				next_chunk_value = 0;
+			*chunk_ptr <<= bits;
+			*chunk_ptr |= next_chunk_value >> (8 - bits);
+			chunk_num++;
 		}
 	}
 }
@@ -315,23 +318,25 @@ static void che_io_sdl_scroll_left(che_io_t *io)
 static void che_io_sdl_scroll_right(che_io_t *io)
 {
 	che_io_sdl_t *s = che_containerof(io, che_io_sdl_t, io);
-	int chunks_per_line = (s->w >> 3) >> 2;
+	int chunks_per_line = s->w >> 3;
 	int bits = 4;
 	if (!s->extended)
 		bits = 2;
 	int y;
 	for (y = 0; y < s->h; y++) {
-		uint32_t prev_chunk_value = 0;
-		int chunk_num = 0;
-		while (chunk_num < chunks_per_line) {
-			uint32_t *chunk_ptr = (uint32_t *)s->data;
+		int chunk_num = chunks_per_line - 1;
+		while (chunk_num >= 0) {
+			uint8_t *chunk_ptr = s->data;
 			chunk_ptr += y * chunks_per_line;
 			chunk_ptr += chunk_num;
-			uint32_t orig_chunk_value = *chunk_ptr;
-			*chunk_ptr  = orig_chunk_value >> bits;
-			*chunk_ptr |= prev_chunk_value << (32 - bits);
-			prev_chunk_value = orig_chunk_value;
-			chunk_num++;
+			uint8_t prev_chunk_value;
+			if (chunk_num > 0)
+				prev_chunk_value = *(chunk_ptr - 1);
+			else
+				prev_chunk_value = 0;
+			*chunk_ptr >>= bits;
+			*chunk_ptr |= prev_chunk_value << (8 - bits);
+			chunk_num--;
 		}
 	}
 }
