@@ -47,6 +47,9 @@ typedef struct che_machine_t
 
 	/* Random number generator */
 	che_rand_t rand;
+
+	/* RPL user flags */
+	uint8_t rpl_flags[8];
 } che_machine_t;
 
 int che_machine_init(che_machine_t *m, che_io_t *io);

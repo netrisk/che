@@ -47,7 +47,12 @@ typedef int (*che_cycle_function_t)(che_machine_t *m, uint16_t opcode);
 
 static int che_cycle_function_0(che_machine_t *m, uint16_t opcode)
 {
-	if (opcode == 0x00EE) {
+	if (opcode >> 4 == 0x00C) {
+		/* Scroll down N lines */
+		int lines = CHE_GET_NIBBLE_0(opcode);
+		che_io_scr_scroll_down(m->io, lines);
+		CHE_NEXT_INSTRUCTION(m->pc);
+	} else if (opcode == 0x00EE) {
 		/* Return from subroutine */
 		if (m->sp == 0) {
 			che_log("ERROR: Empty stack\n");
@@ -58,6 +63,26 @@ static int che_cycle_function_0(che_machine_t *m, uint16_t opcode)
 	} else if (opcode == 0x00E0) {
 		/* Clear the screen */
 		che_io_scr_clear(m->io);
+		CHE_NEXT_INSTRUCTION(m->pc);
+	} else if (opcode == 0x00FB) {
+		/* Scroll display right */
+		che_io_scr_scroll_right(m->io);
+		CHE_NEXT_INSTRUCTION(m->pc);
+	} else if (opcode == 0x00FC) {
+		/* Scroll display left */
+		che_io_scr_scroll_left(m->io);
+		CHE_NEXT_INSTRUCTION(m->pc);
+	} else if (opcode == 0x00FD) {
+		/* TODO */
+		che_log("WARNING: Not exiting CHIP interpreter");
+		CHE_NEXT_INSTRUCTION(m->pc);
+	} else if (opcode == 0x00FE) {
+		/* Disable extended screen mode */
+		che_io_scr_extended(m->io, false);
+		CHE_NEXT_INSTRUCTION(m->pc);
+	} else if (opcode == 0x00FF) {
+		/* Enable extended screen mode */
+		che_io_scr_extended(m->io, true);
 		CHE_NEXT_INSTRUCTION(m->pc);
 	} else {
 		che_log("WARNING: ignoring RCA 1802 call to 0x%03X", opcode);
@@ -352,14 +377,23 @@ static int che_cycle_function_f(che_machine_t *m, uint16_t opcode)
 			CHE_VF(m->r) = 0;
 		}
 	} else if (lowest_byte == 0x29) {
-		/* Sets I to the location of the sprite for the character in VX */
+		/* Sets I to the location of the 4x5 sprite for the character in VX */
 		int value = m->r.v[CHE_GET_OPCODE_X(opcode)];
 		if (value > 0xf) {
-			che_log("ERROR: Character 0x%02X not in table", value);
+			che_log("ERROR: Character 0x%02X not in 4x5 table", value);
 			return -1;
 		}
 		m->r.i = CHE_MACHINE_4X5_CHAR_TABLE_POS +
 		         sizeof(che_machine_4x5_char_t) * value;
+	} else if (lowest_byte == 0x30) {
+		/* Sets I to the location of the 8x10 sprite for the character in VX */
+		int value = m->r.v[CHE_GET_OPCODE_X(opcode)];
+		if (value > 9) {
+			che_log("ERROR: Character 0x%02X not in 8x10 table", value);
+			return -1;
+		}
+		m->r.i = CHE_MACHINE_8X10_CHAR_TABLE_POS +
+		         sizeof(che_machine_8x10_char_t) * value;
 	} else if (lowest_byte == 0x33) {
 		/* Stores the Binary-coded decimal representation of VX */
 		int value = m->r.v[CHE_GET_OPCODE_X(opcode)];
@@ -375,12 +409,30 @@ static int che_cycle_function_f(che_machine_t *m, uint16_t opcode)
 		for (i = 0; i <= final_v; i++)
 			*ptr++ = m->r.v[i];
 	} else if (lowest_byte == 0x65) {
-		/* Stores V0 to VX in memory starting at address I */
+		/* Reads V0 to VX from memory starting at address I */
 		uint8_t *ptr = m->mem + m->r.i;
 		int final_v = CHE_GET_OPCODE_X(opcode);
 		int i;
 		for (i = 0; i <= final_v; i++)
 			m->r.v[i] = *ptr++;
+	} else if (lowest_byte == 0x75) {
+		/* Stores V0 to VX in RPL user flags */
+		int final_v = CHE_GET_OPCODE_X(opcode);
+		if (final_v > 7) {
+			che_log("ERROR: Register v%d not to be stored in rpl flags",
+			        final_v);
+			return -1;
+		}
+		memcpy(m->rpl_flags, m->r.v, final_v + 1);
+	} else if (lowest_byte == 0x85) {
+		/* Reads V0 to VX from RPL user flags */
+		int final_v = CHE_GET_OPCODE_X(opcode);
+		if (final_v > 7) {
+			che_log("ERROR: Register v%d not to be read from rpl flags",
+			        final_v);
+			return -1;
+		}
+		memcpy(m->r.v, m->rpl_flags, final_v + 1);
 	} else {
 		che_cycle_unrecognized(m, opcode);
 		return -1;

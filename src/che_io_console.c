@@ -158,14 +158,12 @@ void che_io_console_clear(che_io_t *io)
 }
 
 static
-int che_io_console_io_init(che_io_t *io, int width, int height)
+int che_io_console_io_init(che_io_t *io)
 {
 	che_io_console_t *c = che_containerof(io, che_io_console_t, io);
-	if (width % 8)
-		return -1;
-	c->data = malloc((width >> 3) * height);
-	c->w = width;
-	c->h = height;
+	c->data = malloc((64 >> 3) * 32);
+	c->w = 64;
+	c->h = 32;
 	c->x_wrap = true;
 	c->y_wrap = true;
 	che_io_console_clear(io);

@@ -77,6 +77,30 @@ void che_io_scr_clear(che_io_t *io)
 }
 
 static inline
+void che_io_scr_scroll_down(che_io_t *io, int lines)
+{
+	if (io->ops->scr_scroll_down)
+		io->ops->scr_scroll_down(io, lines);
+	/* TODO: fail if not */
+}
+
+static inline
+void che_io_scr_scroll_left(che_io_t *io)
+{
+	if (io->ops->scr_scroll_left)
+		io->ops->scr_scroll_left(io);
+	/* TODO: fail if not */
+}
+
+static inline
+void che_io_scr_scroll_right(che_io_t *io)
+{
+	if (io->ops->scr_scroll_right)
+		io->ops->scr_scroll_right(io);
+	/* TODO: fail if not */
+}
+
+static inline
 void che_io_scr_render(che_io_t *io)
 {
 	io->ops->scr_render(io);
