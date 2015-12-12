@@ -13,7 +13,7 @@
 
 /* #define CHE_MACHINE_DBG_STATS */
 
-static const che_machine_char_t che_machine_char_table[16] =
+static const che_machine_4x5_char_t che_machine_4x5_char_table[16] =
 {
 	{ 0xf0, 0x90, 0x90, 0x90, 0xf0 }, /* 0 */
 	{ 0x20, 0x60, 0x20, 0x20, 0x70 }, /* 1 */
@@ -44,8 +44,8 @@ int che_machine_init(che_machine_t *m, che_io_t *io)
 	m->delay_timer = 0;
 	m->sound_timer = 0;
 	che_rand_init(&m->rand, 0);
-	memcpy(m->mem + CHE_MACHINE_CHAR_TABLE_POS, che_machine_char_table,
-               sizeof(che_machine_char_table));
+	memcpy(m->mem + CHE_MACHINE_4X5_CHAR_TABLE_POS, che_machine_4x5_char_table,
+               sizeof(che_machine_4x5_char_table));
 	m->io = io;
 	return che_io_init(io);
 }
