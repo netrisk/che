@@ -55,42 +55,28 @@ uint16_t che_io_sdl_keymask_get(che_io_t *io)
 
 /* #define CHE_SCR_TEST */
 
-/* TODO: Maybe this function can be in general code, not platform code */
-/* TODO: Test collision code */
-static
-bool che_io_sdl_sprite(che_io_t *io, uint8_t *buf, int h, int x, int y)
+/* TODO: Maybe these spricte functions can be in general code,
+ *       not platform code */
+static bool che_io_sdl_spr_dump(che_io_sdl_t *c, uint8_t *buf, int h_visible,
+                                int x, int y, int spr_w)
 {
-	che_io_sdl_t *c = che_containerof(io, che_io_sdl_t, io);
 	bool collision = false;
-	int h_visible;
-	int i;
+	int h;
 
-	/* Wrap coordinates around the screen */
+	/* Wrap x coordinate around the screen */
 	if (x >= c->w) {
 		if (!c->x_wrap)
 			return false;
 		x = x % c->w;
 	}
-	if (y >= c->h) {
-		if (!c->y_wrap)
-			return false;
-		y = y % c->h;
-	}
-
-	/* Cut the sprite if necessary */
-	if (y + h < c->h)
-		h_visible = h;
-	else
-		h_visible = c->h - y;
 
 	/* TODO: if y wrapping is enabled maybe we should draw the bottom
 	         of the sprite at the top of the screen */
-	/* Draw content in memory */
-	for (i = 0; i < h_visible; i++) {
+	for (h = 0; h < h_visible; h++) {
 		/* Leftmost byte bits */
 		int rsh = x & 7;
-		int pos = (c->w >> 3) * (y + i) + (x >> 3);
-		uint8_t spr_byte = (buf[i] >> rsh);
+		int pos = (c->w >> 3) * (y + h) + (x >> 3);
+		uint8_t spr_byte = (buf[h * spr_w] >> rsh);
 		uint8_t xor_byte = c->data[pos] ^ spr_byte;
 		if (!collision) {
 			uint8_t or_byte = c->data[pos] | spr_byte;
@@ -106,7 +92,7 @@ bool che_io_sdl_sprite(che_io_t *io, uint8_t *buf, int h, int x, int y)
 				pos -= c->w >> 3;
 			}
 			int lsh = 8 - rsh;
-			spr_byte = (buf[i] << lsh);
+			spr_byte = (buf[h * spr_w] << lsh);
 			xor_byte = c->data[pos] ^ spr_byte;
 			if (!collision) {
 				uint8_t or_byte = c->data[pos] | spr_byte;
@@ -114,6 +100,45 @@ bool che_io_sdl_sprite(che_io_t *io, uint8_t *buf, int h, int x, int y)
 			}
 			c->data[pos] = xor_byte;
 		}
+	}
+end:
+	return collision;
+}
+
+static
+bool che_io_sdl_sprite(che_io_t *io, uint8_t *buf, int h, int x, int y)
+{
+	che_io_sdl_t *c = che_containerof(io, che_io_sdl_t, io);
+	bool collision;
+	int h_visible;
+	int i;
+	int i_inc = 1;
+
+	/* Check if it's a 16x16 sprite */
+	if (h == 0)
+		h = 16;
+
+	/* Wrap y coordinate around the screen */
+	if (y >= c->h) {
+		if (!c->y_wrap)
+			return false;
+		y = y % c->h;
+	}
+
+	/* Cut the sprite if necessary */
+	if (y + h < c->h)
+		h_visible = h;
+	else
+		h_visible = c->h - y;
+
+	/* Draw content in memory */
+	if (h == 16) {
+		/* Draw each half of the sprite as independent 8x16 sprite */
+		collision  = che_io_sdl_spr_dump(c, buf, h_visible, x, y, 2);
+		collision |= che_io_sdl_spr_dump(c, buf + 1, h_visible, x + 8,
+		                                 y, 2);
+	} else {
+		collision  = che_io_sdl_spr_dump(c, buf, h_visible, x, y, 1);
 	}
 
 end:
