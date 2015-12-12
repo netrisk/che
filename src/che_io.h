@@ -18,6 +18,12 @@ typedef struct che_io_ops_t
 
 	void (*scr_clear)(che_io_t *io);
 
+	void (*scr_scroll_down)(che_io_t *io, int lines);
+
+	void (*scr_scroll_left)(che_io_t *io);
+
+	void (*scr_scroll_right)(che_io_t *io);
+
 	void (*scr_render)(che_io_t *io);
 
 	void (*scr_flip)(che_io_t *io);

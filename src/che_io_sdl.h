@@ -23,6 +23,7 @@ typedef struct che_io_sdl_t
 	int           w;
 	int           h;
 	uint8_t       pix_size;
+	bool          extended;
 	bool          x_wrap;
 	bool          y_wrap;
 	uint16_t      keymask;

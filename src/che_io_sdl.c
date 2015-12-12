@@ -214,6 +214,7 @@ int che_io_sdl_io_init(che_io_t *io)
 	c->color_b = 20;
 
 	/* Allocate screen for normal mode by default */
+	c->extended = false;
 	che_io_sdl_screen_alloc(c, 64, 32, 10);	
 
 	/* Video */
@@ -246,6 +247,70 @@ int che_io_sdl_io_init(che_io_t *io)
 	return 0;
 }
 
+/* TODO: these 3 scroll functions are still untested */
+/* TODO: these 3 scroll must be general functions */
+static void che_io_sdl_scroll_down(che_io_t *io, int lines)
+{
+	che_io_sdl_t *s = che_containerof(io, che_io_sdl_t, io);
+	int bytes_per_line = s->w >> 3;
+	/* Move data */
+	if (lines < s->h)
+		memmove(s->data + lines * bytes_per_line, s->data,
+		        (s->h - lines) * bytes_per_line);
+	else
+		lines = s->h;
+	/* Erase upper lines */
+	memset(s->data, 0, lines * bytes_per_line);
+}
+
+static void che_io_sdl_scroll_left(che_io_t *io)
+{
+	che_io_sdl_t *s = che_containerof(io, che_io_sdl_t, io);
+	int chunks_per_line = (s->w >> 3) >> 2;
+	int bits = 4;
+	if (!s->extended)
+		bits = 2;
+	int y;
+	for (y = 0; y < s->h; y++) {
+		uint32_t prev_chunk_value = 0;
+		int chunk_num = chunks_per_line - 1;
+		while (chunk_num >= 0) {
+			uint32_t *chunk_ptr = (uint32_t *)s->data;
+			chunk_ptr += y * chunks_per_line;
+			chunk_ptr += chunk_num;
+			uint32_t orig_chunk_value = *chunk_ptr;
+			*chunk_ptr  = orig_chunk_value << bits;
+			*chunk_ptr |= prev_chunk_value >> (32 - bits);
+			prev_chunk_value = orig_chunk_value;
+			chunk_num--;
+		}
+	}
+}
+
+static void che_io_sdl_scroll_right(che_io_t *io)
+{
+	che_io_sdl_t *s = che_containerof(io, che_io_sdl_t, io);
+	int chunks_per_line = (s->w >> 3) >> 2;
+	int bits = 4;
+	if (!s->extended)
+		bits = 2;
+	int y;
+	for (y = 0; y < s->h; y++) {
+		uint32_t prev_chunk_value = 0;
+		int chunk_num = 0;
+		while (chunk_num < chunks_per_line) {
+			uint32_t *chunk_ptr = (uint32_t *)s->data;
+			chunk_ptr += y * chunks_per_line;
+			chunk_ptr += chunk_num;
+			uint32_t orig_chunk_value = *chunk_ptr;
+			*chunk_ptr  = orig_chunk_value >> bits;
+			*chunk_ptr |= prev_chunk_value << (32 - bits);
+			prev_chunk_value = orig_chunk_value;
+			chunk_num++;
+		}
+	}
+}
+
 static
 int che_io_sdl_extended(che_io_t *io, bool extended)
 {
@@ -260,6 +325,7 @@ int che_io_sdl_extended(che_io_t *io, bool extended)
 		h = 32;
 		pix_size = 10;
 	}
+	s->extended = extended;
 	che_io_sdl_screen_free(s);
 	che_io_sdl_screen_alloc(s, w, h, pix_size);
 	return 0;
@@ -377,16 +443,19 @@ void che_io_sdl_end(che_io_t *io)
 
 static const che_io_ops_t che_io_sdl_ops =
 {
-	.init         = che_io_sdl_io_init,
-	.scr_extended = che_io_sdl_extended,
-	.scr_sprite   = che_io_sdl_sprite,
-	.scr_clear    = che_io_sdl_clear,
-	.scr_render   = che_io_sdl_render,
-	.scr_flip     = che_io_sdl_flip,
-	.keymask_get  = che_io_sdl_keymask_get,
-	.tone_start   = che_io_sdl_tone_start,
-	.tone_stop    = che_io_sdl_tone_stop,
-	.end          = che_io_sdl_end,
+	.init             = che_io_sdl_io_init,
+	.scr_extended     = che_io_sdl_extended,
+	.scr_sprite       = che_io_sdl_sprite,
+	.scr_clear        = che_io_sdl_clear,
+	.scr_scroll_down  = che_io_sdl_scroll_down,
+	.scr_scroll_left  = che_io_sdl_scroll_left,
+	.scr_scroll_right = che_io_sdl_scroll_right,
+	.scr_render       = che_io_sdl_render,
+	.scr_flip         = che_io_sdl_flip,
+	.keymask_get      = che_io_sdl_keymask_get,
+	.tone_start       = che_io_sdl_tone_start,
+	.tone_stop        = che_io_sdl_tone_stop,
+	.end              = che_io_sdl_end,
 };
 
 che_io_t *che_io_sdl_init(che_io_sdl_t *c)
