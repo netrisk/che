@@ -117,9 +117,11 @@ static int che_cycle_function_3(che_machine_t *m, uint16_t opcode)
 {
 	/* 3XNN skips the next instruction if VX=NN*/
 	#ifdef CHE_DBG_OPCODES
-	che_log("Skip next instruction if register[%u] == %x",
+	che_log("Skip next instruction if v[%u] == %u (v[%u]=%u)",
 	        CHE_GET_OPCODE_X(opcode),
-	        CHE_GET_OPCODE_NN(opcode));
+	        CHE_GET_OPCODE_NN(opcode),
+	        CHE_GET_OPCODE_X(opcode),
+	        m->r.v[CHE_GET_OPCODE_NN(opcode)]);
 	#endif /* CHE_DBG_OPCODES */
 	if( m->r.v[CHE_GET_OPCODE_X(opcode)] == CHE_GET_OPCODE_NN(opcode) ) {
 		#ifdef CHE_DBG_OPCODES
@@ -145,8 +147,8 @@ static int che_cycle_function_4(che_machine_t *m, uint16_t opcode)
 	#endif /* CHE_DBG_OPCODES */
 	if( m->r.v[CHE_GET_OPCODE_X(opcode)] != CHE_GET_OPCODE_NN(opcode) ) {
 		#ifdef CHE_DBG_OPCODES
-			che_log("Skipping next instruction");
-			#endif /* CHE_DBG_OPCODES */
+		che_log("Skipping next instruction");
+		#endif /* CHE_DBG_OPCODES */
 		CHE_SKIP_NEXT_INSTRUCTION(m->pc);
 	} else {
 		#ifdef CHE_DBG_OPCODES
@@ -218,16 +220,13 @@ static int che_cycle_function_8(che_machine_t *m, uint16_t opcode)
 	case 5: { /* 8xy5 Vy is substracted from vx. Vf set to 0 when 
 	             borrow, and 1 when not. */
 		uint8_t vy = m->r.v[CHE_GET_OPCODE_Y(opcode)];
-		int16_t vx = m->r.v[CHE_GET_OPCODE_X(opcode)];
-		vx -= vy; /* ¿should I leave to zero of to absolute
-		             plus vf flag */
-		if( vx < 0 ) {
+		uint8_t vx = m->r.v[CHE_GET_OPCODE_X(opcode)];
+		if (vx < vy)
 			CHE_VF(m->r) = 0;
-			vx = -vx; /* remove the sign */
-		} else {
+		else
 			CHE_VF(m->r) = 1;
-		}
-		m->r.v[CHE_GET_OPCODE_X(opcode)] = (uint8_t)(vx & 0x00FF);
+		vx -= vy;
+		m->r.v[CHE_GET_OPCODE_X(opcode)] = vx;
 		}
 		break;
 	case 6: /* 8xy6 shifts VX right by one.
@@ -240,19 +239,18 @@ static int che_cycle_function_8(che_machine_t *m, uint16_t opcode)
 	          a borrow and 1 when there isn't */
 		uint8_t vy = m->r.v[CHE_GET_OPCODE_Y(opcode)];
 		uint8_t vx = m->r.v[CHE_GET_OPCODE_X(opcode)];
-		int16_t res = vy - vx;
-		if( res > 0 ) {
-			CHE_VF(m->r) = 1;
-		} else {
+		if (vx > vy) {
 			CHE_VF(m->r) = 0;
-			res = -res; /* discard the sign */
+		} else {
+			CHE_VF(m->r) = 1;
 		}
-		m->r.v[CHE_GET_OPCODE_X(opcode)] = (uint8_t)(res & 0x00FF);
+		vx = vy - vx;
+		m->r.v[CHE_GET_OPCODE_X(opcode)] = vx;
 		}
 		break;
 	case 0xe: /* 8xye shifts vx left by one.VF is set to the value of the 
 	             msb of vx before the shift */ 
-		CHE_VF(m->r) = m->r.v[CHE_GET_OPCODE_X(opcode)] & 0x80;
+		CHE_VF(m->r) = (m->r.v[CHE_GET_OPCODE_X(opcode)] & 0x80) >> 7;
 		m->r.v[CHE_GET_OPCODE_X(opcode)] <<= 1;
 		break;
 	default:
