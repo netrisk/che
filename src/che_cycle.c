@@ -52,6 +52,9 @@ static int che_cycle_function_0(che_machine_t *m, uint16_t opcode)
 		int lines = CHE_GET_NIBBLE_0(opcode);
 		che_io_scr_scroll_down(m->io, lines);
 		CHE_NEXT_INSTRUCTION(m->pc);
+		#ifdef CHE_DBG_OPCODES
+		che_log("Scroll %d lines down", lines);
+		#endif /* CHE_DBG_OPCODES */
 	} else if (opcode == 0x00EE) {
 		/* Return from subroutine */
 		if (m->sp == 0) {
@@ -60,6 +63,9 @@ static int che_cycle_function_0(che_machine_t *m, uint16_t opcode)
 		}
 		m->sp--;
 		m->pc = m->stack[m->sp];
+		#ifdef CHE_DBG_OPCODES
+		che_log("Return from sub to %x", m->pc);
+		#endif /* CHE_DBG_OPCODES */
 	} else if (opcode == 0x00E0) {
 		/* Clear the screen */
 		che_io_scr_clear(m->io);
@@ -68,10 +74,16 @@ static int che_cycle_function_0(che_machine_t *m, uint16_t opcode)
 		/* Scroll display right */
 		che_io_scr_scroll_right(m->io);
 		CHE_NEXT_INSTRUCTION(m->pc);
+		#ifdef CHE_DBG_OPCODES
+		che_log("Scroll right");
+		#endif /* CHE_DBG_OPCODES */
 	} else if (opcode == 0x00FC) {
 		/* Scroll display left */
 		che_io_scr_scroll_left(m->io);
 		CHE_NEXT_INSTRUCTION(m->pc);
+		#ifdef CHE_DBG_OPCODES
+		che_log("Scroll left");
+		#endif /* CHE_DBG_OPCODES */
 	} else if (opcode == 0x00FD) {
 		/* TODO */
 		che_log("WARNING: Not exiting CHIP interpreter");
@@ -80,10 +92,16 @@ static int che_cycle_function_0(che_machine_t *m, uint16_t opcode)
 		/* Disable extended screen mode */
 		che_io_scr_extended(m->io, false);
 		CHE_NEXT_INSTRUCTION(m->pc);
+		#ifdef CHE_DBG_OPCODES
+		che_log("Disable extended");
+		#endif /* CHE_DBG_OPCODES */
 	} else if (opcode == 0x00FF) {
 		/* Enable extended screen mode */
 		che_io_scr_extended(m->io, true);
 		CHE_NEXT_INSTRUCTION(m->pc);
+		#ifdef CHE_DBG_OPCODES
+		che_log("Enable extended");
+		#endif /* CHE_DBG_OPCODES */
 	} else {
 		che_log("WARNING: ignoring RCA 1802 call to 0x%03X", opcode);
 		CHE_NEXT_INSTRUCTION(m->pc);
@@ -110,6 +128,9 @@ static int che_cycle_function_2(che_machine_t *m, uint16_t opcode)
 	}
 	m->stack[m->sp++] = m->pc + 2;
 	m->pc = opcode & 0xfff;
+	#ifdef CHE_DBG_OPCODES
+	che_log("Call to sub at %x", m->pc);
+	#endif /* CHE_DBG_OPCODES */
 	return 0;
 }
 
@@ -185,6 +206,12 @@ static int che_cycle_function_7(che_machine_t *m, uint16_t opcode)
 {
 	/* 7XNN Adds NN to VX */
 	/* TODO: borrow? */
+	#ifdef CHE_DBG_OPCODES
+	che_log("v[%d](%d) + %d = %d",CHE_GET_OPCODE_X(opcode),
+		m->r.v[CHE_GET_OPCODE_X(opcode)],
+	        CHE_GET_OPCODE_NN(opcode),
+		m->r.v[CHE_GET_OPCODE_X(opcode)] + CHE_GET_OPCODE_NN(opcode));
+	#endif /* CHE_DBG_OPCODES */
 	m->r.v[CHE_GET_OPCODE_X(opcode)] += CHE_GET_OPCODE_NN(opcode);
 	CHE_NEXT_INSTRUCTION(m->pc);
 	return 0;
@@ -219,6 +246,11 @@ static int che_cycle_function_8(che_machine_t *m, uint16_t opcode)
 		break;
 	case 5: { /* 8xy5 Vy is substracted from vx. Vf set to 0 when 
 	             borrow, and 1 when not. */
+		#ifdef CHE_DBG_OPCODES
+		che_log("v[%d](%d) - v[%d](%d) = ",
+		        CHE_GET_OPCODE_X(opcode), m->r.v[CHE_GET_OPCODE_X(opcode)],
+		        CHE_GET_OPCODE_Y(opcode), m->r.v[CHE_GET_OPCODE_Y(opcode)]);
+		#endif /* CHE_DBG_OPCODES */
 		uint8_t vy = m->r.v[CHE_GET_OPCODE_Y(opcode)];
 		uint8_t vx = m->r.v[CHE_GET_OPCODE_X(opcode)];
 		if (vx < vy)
@@ -227,6 +259,10 @@ static int che_cycle_function_8(che_machine_t *m, uint16_t opcode)
 			CHE_VF(m->r) = 1;
 		vx -= vy;
 		m->r.v[CHE_GET_OPCODE_X(opcode)] = vx;
+		#ifdef CHE_DBG_OPCODES
+		che_log("new v[%d] = %d",
+		        CHE_GET_OPCODE_X(opcode), m->r.v[CHE_GET_OPCODE_X(opcode)]);
+		#endif /* CHE_DBG_OPCODES */
 		}
 		break;
 	case 6: /* 8xy6 shifts VX right by one.
@@ -303,6 +339,9 @@ static int che_cycle_function_d(che_machine_t *m, uint16_t opcode)
 	int x = m->r.v[CHE_GET_NIBBLE_2(opcode)];
 	int y = m->r.v[CHE_GET_NIBBLE_1(opcode)];
 	m->r.v[0xf] = che_io_scr_sprite(m->io, m->mem + m->r.i, height, x, y);
+	#ifdef CHE_DBG_OPCODES
+	che_log("Draw sprite i=%d h=%d at (%d,%d)", m->r.i, height, y, x);
+	#endif /* CHE_DBG_OPCODES */
 	CHE_NEXT_INSTRUCTION(m->pc);
 	return 0;
 }
@@ -367,6 +406,11 @@ static int che_cycle_function_f(che_machine_t *m, uint16_t opcode)
 		   (I+VX>0xFFF), and 0 when there isn't.
 		   This is undocumented feature of the CHIP-8 and used by
 		   Spacefight 2091! game*/
+		#ifdef CHE_DBG_OPCODES
+		che_log("i(%d) + v%d(%d) = %d", m->r.i, CHE_GET_OPCODE_X(opcode),
+		        m->r.v[CHE_GET_OPCODE_X(opcode)],
+			m->r.v[CHE_GET_OPCODE_X(opcode)] + m->r.i);
+		#endif /* CHE_DBG_OPCODES */
 		m->r.i += m->r.v[CHE_GET_OPCODE_X(opcode)];
 		if (m->r.i > 0xfff) {
 			m->r.i &= 0xfff;
@@ -392,6 +436,9 @@ static int che_cycle_function_f(che_machine_t *m, uint16_t opcode)
 		}
 		m->r.i = CHE_MACHINE_8X10_CHAR_TABLE_POS +
 		         sizeof(che_machine_8x10_char_t) * value;
+		#ifdef CHE_DBG_OPCODES
+		che_log("Point at 8x10 char %d", value);
+		#endif /* CHE_DBG_OPCODES */
 	} else if (lowest_byte == 0x33) {
 		/* Stores the Binary-coded decimal representation of VX */
 		int value = m->r.v[CHE_GET_OPCODE_X(opcode)];
@@ -422,6 +469,9 @@ static int che_cycle_function_f(che_machine_t *m, uint16_t opcode)
 			return -1;
 		}
 		memcpy(m->rpl_flags, m->r.v, final_v + 1);
+		#ifdef CHE_DBG_OPCODES
+		che_log("Stores up to v%d in user flags", final_v);
+		#endif /* CHE_DBG_OPCODES */
 	} else if (lowest_byte == 0x85) {
 		/* Reads V0 to VX from RPL user flags */
 		int final_v = CHE_GET_OPCODE_X(opcode);
@@ -431,6 +481,9 @@ static int che_cycle_function_f(che_machine_t *m, uint16_t opcode)
 			return -1;
 		}
 		memcpy(m->r.v, m->rpl_flags, final_v + 1);
+		#ifdef CHE_DBG_OPCODES
+		che_log("Read up to v%d from user flags", final_v);
+		#endif /* CHE_DBG_OPCODES */
 	} else {
 		che_cycle_unrecognized(m, opcode);
 		return -1;
