@@ -8,10 +8,10 @@ CHIP-8:
 It was initially used on the COSMAC VIP and Telmac 1800 8-bit microcomputers in
 the mid-1970s."*
 
-This project is an interpreter/emulator of CHIP-8 coded just for fun which aims
-to be executed in many platforms. Right now only GNU/Linux and MacOS X are
-supported but support for Windows will come. We have in our minds to port it to
-an Arduino board too.
+This project is an interpreter/emulator of CHIP-8 and SUPER-CHIP coded just for
+fun which aims to be executed in many platforms. Right now only GNU/Linux and
+MacOS X are supported but support for Windows will come. We have in our minds to
+port it to an Arduino board too.
 
 ## Compilation
 
@@ -56,5 +56,4 @@ To execute example dummy file type:
 A pack of simple yet amusing 15 CHIP-8 games.
 
 * [Compilation of CHIP-8, SuperChip and MegaChip8 games and demos ](http://www.chip8.com/?page=109):
-Compilation of many programs, games and demos. We still don't support neither
-SuperChip nor MegaChip.
+Compilation of many programs, games and demos. We still don't support MegaChip.
