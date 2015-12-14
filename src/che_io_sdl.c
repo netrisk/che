@@ -46,6 +46,11 @@ uint16_t che_io_sdl_keymask_get(che_io_t *io)
 		case SDL_QUIT:
 			exit(0);
 			break;
+		case SDL_WINDOWEVENT:
+			/* TODO: this will not be immediate, subscribe to event
+			         to do it better */
+			if (event.window.event == SDL_WINDOWEVENT_EXPOSED)
+				s->draw_pending = true;
 		default:
 		break;
 		}
