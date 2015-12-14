@@ -32,6 +32,10 @@ typedef struct che_io_sdl_t
 	uint8_t       color_r;
 	uint8_t       color_g;
 	uint8_t       color_b;
+	int           base_x;
+	int           base_y;
+	int           size_x;
+	int           size_y;
 
 	/* Phosphor data */
 	uint8_t       ph_level;

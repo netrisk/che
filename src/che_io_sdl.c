@@ -23,6 +23,28 @@ static const uint8_t che_key_map[16] = {
 	21 /* R */,  9 /* F */, 25 /* V */
 };
 
+static void che_io_sdl_recalc_pix_sizes(che_io_sdl_t *s)
+{
+	int pix_w = s->size_x / s->w;
+	int pix_h = s->size_y / s->h;
+
+	/* Set the required minimum pixel size */
+	s->pix_size = pix_w <= pix_h ? pix_w : pix_h;
+	if (s->pix_size == 0)
+		s->pix_size = 1;
+
+	/* Center the picture at the screen */
+	s->base_x = (s->size_x % (s->w * s->pix_size)) >> 1;
+	s->base_y = (s->size_y % (s->h * s->pix_size)) >> 1;
+}
+
+static void che_io_sdl_resize(che_io_sdl_t *s, int size_x, int size_y)
+{
+	s->size_x = size_x;
+	s->size_y = size_y;
+	che_io_sdl_recalc_pix_sizes(s);
+}
+
 static
 uint16_t che_io_sdl_keymask_get(che_io_t *io)
 {
@@ -51,6 +73,9 @@ uint16_t che_io_sdl_keymask_get(che_io_t *io)
 			         to do it better */
 			if (event.window.event == SDL_WINDOWEVENT_EXPOSED)
 				s->draw_pending = true;
+			else if (event.window.event == SDL_WINDOWEVENT_RESIZED)
+				che_io_sdl_resize(s, event.window.data1,
+				                  event.window.data2);
 		default:
 		break;
 		}
@@ -207,13 +232,12 @@ static void che_io_sdl_set_tone_generate(che_io_sdl_t *s, int volume)
 		s->samples[i] = (che_io_sdl_tone_chunk[i] * volume) / 100;
 }
 
-static void che_io_sdl_screen_alloc(che_io_sdl_t *s, int width, int height,
-                                    int pix_size)
+static void che_io_sdl_screen_alloc(che_io_sdl_t *s, int width, int height)
 {
 	/* Screen and pixel size */
 	s->w = width;
 	s->h = height;
-	s->pix_size = pix_size;
+	che_io_sdl_recalc_pix_sizes(s);
 
 	/* Memory management */
 	s->data = malloc((s->w >> 3) * s->h);
@@ -244,12 +268,17 @@ int che_io_sdl_io_init(che_io_t *io)
 	c->color_b = 20;
 
 	/* Allocate screen for normal mode by default */
+	c->base_x = 0;
+	c->base_y = 0;
+	c->size_x = 640;
+	c->size_y = 320;
 	c->extended = false;
-	che_io_sdl_screen_alloc(c, 64, 32, 10);	
+	che_io_sdl_screen_alloc(c, 64, 32);
 
 	/* Video */
 	SDL_Init(SDL_INIT_VIDEO);
-	SDL_CreateWindowAndRenderer(640, 320, 0, &c->window, &c->renderer);
+	SDL_CreateWindowAndRenderer(c->size_x, c->size_y, SDL_WINDOW_RESIZABLE,
+	                            &c->window, &c->renderer);
 	SDL_SetWindowTitle(c->window, "che CHIP-8 emulator");
 
 	/* Audio */
@@ -354,15 +383,13 @@ int che_io_sdl_extended(che_io_t *io, bool extended)
 	if (extended) {
 		w = 128;
 		h = 64;
-		pix_size = 5;
 	} else {
 		w = 64;
 		h = 32;
-		pix_size = 10;
 	}
 	s->extended = extended;
 	che_io_sdl_screen_free(s);
-	che_io_sdl_screen_alloc(s, w, h, pix_size);
+	che_io_sdl_screen_alloc(s, w, h);
 	return 0;
 }
 
@@ -411,8 +438,8 @@ void che_io_sdl_render_phosphor(che_io_sdl_t *s)
 			if (prev_on && !now_on)
 				*ph_pix = s->ph_level;
 			if (*ph_pix) {
-				rect.x = x * s->pix_size;
-				rect.y = y * s->pix_size;
+				rect.x = s->base_x + x * s->pix_size;
+				rect.y = s->base_y + y * s->pix_size;
 				uint8_t intens_r = ((*ph_pix * s->color_r) / (s->ph_level + 1));
 				uint8_t intens_g = ((*ph_pix * s->color_g) / (s->ph_level + 1));
 				uint8_t intens_b = ((*ph_pix * s->color_b) / (s->ph_level + 1));
@@ -450,8 +477,8 @@ void che_io_sdl_render(che_io_t *io)
 	for (y = 0; y < c->h; y++) {
 		for (x = 0; x < c->w; x++) {
 			if ((c->data[y * (c->w >> 3) + (x >> 3)] >> (7 - (x & 7))) & 1) {
-				rect.x = x * c->pix_size;
-				rect.y = y * c->pix_size;
+				rect.x = c->base_x + x * c->pix_size;
+				rect.y = c->base_y + y * c->pix_size;
 				SDL_RenderFillRect(c->renderer, &rect);
 			}
 		}
