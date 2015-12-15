@@ -34,8 +34,14 @@ static void che_io_sdl_recalc_pix_sizes(che_io_sdl_t *s)
 		s->pix_size = 1;
 
 	/* Center the picture at the screen */
-	s->base_x = (s->size_x % (s->w * s->pix_size)) >> 1;
-	s->base_y = (s->size_y % (s->h * s->pix_size)) >> 1;
+	int base_x = (s->size_x - (s->w * s->pix_size)) >> 1;
+	int base_y = (s->size_y - (s->h * s->pix_size)) >> 1;
+	if (base_x < 0)
+		base_x = 0;
+	if (base_y < 0)
+		base_y = 0;
+	s->base_x = base_x;
+	s->base_y = base_y;
 }
 
 static void che_io_sdl_resize(che_io_sdl_t *s, int size_x, int size_y)
