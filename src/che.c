@@ -45,9 +45,10 @@ int che_machine_file_load(che_machine_t *m, const char *filename,
 }
 
 static che_machine_t machine;
-static che_io_console_t io_console;
 #ifdef CHE_USE_SDL
 static che_io_sdl_t io_sdl;
+#else /* CHE_USE_SDL */
+static che_io_console_t io_console;
 #endif /* CHE_USE_SDL */
 
 int main(int argc, char **argv)

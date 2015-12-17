@@ -3,7 +3,7 @@ AUTOMAKE_OPTIONS=foreign
 
 # Aditional aclocal flags
 # what flags you want to pass to the C compiler & linker
-AM_CFLAGS=@SDL_CFLAGS@
+AM_CFLAGS=@SDL_CFLAGS@ -Wall -Werror
 AM_LDFLAGS= @SDL_LDFLAGS@
 AM_CPPFLAGS=
 

@@ -147,8 +147,6 @@ bool che_io_sdl_sprite(che_io_t *io, uint8_t *buf, int h, int x, int y)
 	che_io_sdl_t *c = che_containerof(io, che_io_sdl_t, io);
 	bool collision;
 	int h_visible;
-	int i;
-	int i_inc = 1;
 
 	/* Check if it's a 16x16 sprite */
 	if (h == 0)
@@ -177,7 +175,6 @@ bool che_io_sdl_sprite(che_io_t *io, uint8_t *buf, int h, int x, int y)
 		collision  = che_io_sdl_spr_dump(c, buf, h_visible, x, y, 1);
 	}
 
-end:
 	c->draw_pending = true;
 	return collision;
 }
@@ -337,7 +334,6 @@ static void che_io_sdl_scroll_left(che_io_t *io)
 		bits = 2;
 	int y;
 	for (y = 0; y < s->h; y++) {
-		uint8_t prev_chunk_value = 0;
 		int chunk_num = 0;
 		while (chunk_num < chunks_per_line) {
 			uint8_t *chunk_ptr = s->data;
@@ -385,7 +381,7 @@ static
 int che_io_sdl_extended(che_io_t *io, bool extended)
 {
 	che_io_sdl_t *s = che_containerof(io, che_io_sdl_t, io);
-	int w, h, pix_size;
+	int w, h;
 	if (extended) {
 		w = 128;
 		h = 64;
