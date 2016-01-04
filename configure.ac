@@ -16,7 +16,7 @@ case $host_os in
         AC_DEFINE([CHE_DARWIN],[],[Compiling under MacOsX])
         AC_CHECK_PROG(SDL2_CONFIG, sdl2-config, [yes], [no])
         if test x"$SDL2_CONFIG" != x"yes" ; then
-    		AC_MSG_ERROR([I can't found the sd2-config script])
+    		AC_MSG_ERROR([I can't found the sdl2-config script])
 		fi
         AC_SUBST(SDL_CFLAGS,[`sdl2-config --cflags`])
         AC_SUBST(SDL_LDFLAGS,[`sdl2-config --libs`])
@@ -50,7 +50,7 @@ AC_ARG_ENABLE([sdl],
 AC_MSG_CHECKING([Configuration: SDL enable/disable])
 case x$disable_sdl in
 xno) AC_MSG_RESULT([no]) 
-	AC_CHECK_LIB(SDL2,SDL_Init,[], [AC_MSG_ERROR([SDL2 has not been detected!!!])])
+	AC_CHECK_LIB(SDL2,SDL_Init,[], [AC_MSG_ERROR([SDL2 has not been detected!!!])], [`sdl2-config --libs`])
 	AC_DEFINE([CHE_USE_SDL],[],[Enable SDL])
 
 	;;
@@ -71,7 +71,6 @@ AC_TYPE_UINT64_T
 AC_TYPE_UINT8_T
 
 # Checks for library functions.
-AC_FUNC_MALLOC
 AC_CHECK_FUNCS([clock_gettime memset strrchr])
 
 AC_OUTPUT(Makefile src/Makefile)
