@@ -14,28 +14,27 @@ case $host_os in
   darwin*)
         AC_MSG_NOTICE([Darwin platform detected])
         AC_DEFINE([CHE_DARWIN],[],[Compiling under MacOsX])
-        AC_CHECK_PROG(SDL2_CONFIG, sdl2-config, [yes], [no])
-        if test x"$SDL2_CONFIG" != x"yes" ; then
-    		AC_MSG_ERROR([I can't found the sdl2-config script])
-		fi
-        AC_SUBST(SDL_CFLAGS,[`sdl2-config --cflags`])
-        AC_SUBST(SDL_LDFLAGS,[`sdl2-config --libs`])
         ;;
   linux*)
         AC_MSG_NOTICE([Linux platform detected])
         AC_DEFINE([CHE_LINUX],[],[Compiling under Linux])
-        AC_CHECK_PROG(SDL2_CONFIG, sdl2-config, [yes], [no])
-        if test x"$SDL2_CONFIG" != x"yes" ; then
-    		AC_MSG_ERROR([I can't found the sd2-config script])
-		fi
-        AC_SUBST(SDL_CFLAGS,[`sdl2-config --cflags`])
-        AC_SUBST(SDL_LDFLAGS,[`sdl2-config --libs`])
         ;;
-    *)
+  *mingw32*)
+        AC_MSG_NOTICE([Windows platform detected])
+        AC_DEFINE([CHE_WINDOWS],[],[Compiling for Windows])
+        ;;
+  *)
         #Default Case
         AC_MSG_ERROR([Your platform is not currently supported])
         ;;
 esac
+
+AC_PATH_PROG(SDL2_CONFIG, [sdl2-config])
+if test -z "$SDL2_CONFIG"; then
+	AC_MSG_ERROR([I can't found the sdl2-config script])
+fi
+AC_SUBST(SDL_CFLAGS,[`$SDL2_CONFIG --cflags`])
+AC_SUBST(SDL_LDFLAGS,[`$SDL2_CONFIG --libs`])
 
 # Checks for programs.
 AC_PROG_CC
@@ -50,7 +49,7 @@ AC_ARG_ENABLE([sdl],
 AC_MSG_CHECKING([Configuration: SDL enable/disable])
 case x$disable_sdl in
 xno) AC_MSG_RESULT([no]) 
-	AC_CHECK_LIB(SDL2,SDL_Init,[], [AC_MSG_ERROR([SDL2 has not been detected!!!])], [`sdl2-config --libs`])
+	AC_CHECK_LIB(SDL2,SDL_Init,[], [AC_MSG_ERROR([SDL2 has not been detected])], [`$SDL2_CONFIG --libs`])
 	AC_DEFINE([CHE_USE_SDL],[],[Enable SDL])
 
 	;;
