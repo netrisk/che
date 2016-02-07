@@ -15,10 +15,9 @@
 #endif
 
 static
-int che_machine_file_load(che_machine_t *m, const char *filename,
-                          uint16_t addr)
+int che_file_load(const char *filename, uint8_t *dst, size_t max_size)
 {
-	int fd;
+	int fd, off = 0;
 
 	/* Open file */
 	fd = open(filename, O_RDONLY);
@@ -28,15 +27,15 @@ int che_machine_file_load(che_machine_t *m, const char *filename,
 	/* Read contents to memory */
 	for (;;) {
 		int rd, max_read;
-		max_read = sizeof(m->mem) - addr;
+		max_read = max_size - off;
 		if (max_read == 0)
 			break;
-		rd = read(fd, m->mem + addr, max_read);
+		rd = read(fd, dst + off, max_read);
 		if (rd == -1)
 			return -1;
 		if (rd == 0)
 			break;
-		addr += rd;
+		off += rd;
 	}
 
 	/* Close file */
@@ -63,13 +62,13 @@ int main(int argc, char **argv)
 	#else /* CHE_USE_SDL */
 	che_io_t *io = che_io_console_init(&io_console);
 	#endif /* CHE_USE_SDL */
-	che_machine_init(&machine, io);
-	if (che_machine_file_load(&machine, argv[1],
-                                  CHE_MACHINE_PROGRAM_START) != 0) {
-		che_machine_end(&machine);
+	if (che_file_load(argv[1], machine.mem + CHE_MACHINE_PROGRAM_START,
+	                  sizeof(machine.mem) - CHE_MACHINE_PROGRAM_START) != 0) {
 		printf("ERROR: loading file\n");
 		return -1;
 	}
+
+	che_machine_init(&machine, io);
 
 	che_machine_run(&machine);
 	
