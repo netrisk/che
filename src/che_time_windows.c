@@ -20,21 +20,7 @@ int che_time_uptime(che_time_t *t)
 
 void che_time_sleep(const che_time_t *t)
 {
-	HANDLE timer;	/* Timer handle */
-	LARGE_INTEGER li;	/* Time defintion */
-	/* Create timer */
-	if (!(timer = CreateWaitableTimer(NULL, TRUE, NULL)))
-		return;
-	/* Set timer properties */
-	li.QuadPart = -t->ns;
-	if (!SetWaitableTimer(timer, &li, 0, NULL, NULL, FALSE)) {
-		CloseHandle(timer);
-		return;
-	}
-	/* Start & wait for timer */
-	WaitForSingleObject(timer, INFINITE);
-	/* Clean resources */
-	CloseHandle(timer);
+	Sleep(t->ns / 1000000);
 }
 
 #endif /* CHE_LINUX */
